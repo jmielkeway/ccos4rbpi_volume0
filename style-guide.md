@@ -28,6 +28,7 @@ The required commit format is similar to the issue format
 - Following problem section is a mandatory dashed `Solution:` section
 - Following solution section is a line stating: Issue: #(issue number) for the reference issue
 - Ideally, the title and problem sections will be taken directly from the referenced issue
+- For an example, please see [here](https://github.com/jmielkeway/ccos4rbpi_volume1/pull/2)
 
 #### Pull Request Format
 - In addition to the commit format, pull requests must not contain more than one commit
