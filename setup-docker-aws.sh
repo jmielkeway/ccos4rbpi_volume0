@@ -15,5 +15,6 @@ sudo add-apt-repository \
     stable"
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+sudo groupadd docker
+sudo usermod -aG docker ubuntu
 sudo docker run hello-world
-docker build -t ccos4rbpi -f Dockerfile .
