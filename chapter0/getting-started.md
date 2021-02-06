@@ -6,9 +6,10 @@ In this section, we will hold hands as we stroll through the intial setup for Ch
 2. [Fork/clone the CheesecakeOS repo](#forkclone-the-cheesecakeos-repo)
 3. [Setup docker](#setup-docker)
 4. [Image SD card with Raspberry Pi OS](#image-sd-card-with-raspberry-pi-os)
-5. [Install USB to UART Drivers](#install-usb-to-uart-drivers)
-6. [Connect Raspberry Pi Mini UART to computer through USB](#connect-raspberry-pi-mini-uart-to-computer-through-usb).
-7. [Login to your Raspberry Pi through the console](#login-to-your-raspberry-pi-through-the-console)
+5. [Replace Raspberry Pi binary boot files](#replace-raspberry-pi-binary-boot-files)
+6. [Install USB to UART Drivers](#install-usb-to-uart-drivers)
+7. [Connect Raspberry Pi Mini UART to computer through USB](#connect-raspberry-pi-mini-uart-to-computer-through-usb).
+8. [Login to your Raspberry Pi through the console](#login-to-your-raspberry-pi-through-the-console)
 
 #### Launch an AWS EC2 instance
 
@@ -36,9 +37,9 @@ If you are interested in using the `build.sh` scripts included in each code dire
 ```bash
 ccos4rbpi:~$ ./setup-docker-aws.sh
 ```
-\*\*\*
-\*\*\*
-\*\*\*
+\*\*\*  
+\*\*\*  
+\*\*\*  
 ```bash
 Hello from Docker!
 This message shows that your installation appears to be working correctly.
@@ -73,6 +74,10 @@ After the image is built, the `build.sh` scripts can be used to build the source
 #### Image SD Card with Raspberry Pi OS
 
 Insert microSD card into computer. Open the Raspberry Pi Imager software. Select the RASPBERRY PI OS (32-BIT) option for the Operating System. Select the microSD card as the SD card. Click the WRITE button. This will write the OS to the card. At the same time, it will create the boot partition where we will ultimately place our own CheesecakeOS.
+
+#### Replace Raspberry Pi Binary Boot Files
+
+Unfortunately, Different versions of the Raspberry Pi Bootloader have different start up side effects for the mini UART device (at least). So we will want to use a specific version of the Raspberry Pi boot files, not neccesarily those that come with the latest image. Head on over to the [Raspberry Pi Firmware GitHub repository, with tag 1.20200512](https://github.com/raspberrypi/firmware/tree/1.20200512), and either clone or download a ZIP file. Copy the contents of the `boot` directory to the boot partition of the SD card, overwriting files with the same names. This will ensure we are working with a consistent, tested version of the bootloader, device tree, and startup files.
 
 #### Install USB to UART Drivers
 
