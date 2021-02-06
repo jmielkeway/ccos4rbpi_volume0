@@ -107,8 +107,9 @@ void log_init()
 
 static int puthex(unsigned long x, struct writebuf *w)
 {
-    char c, d = 0;
-    char temp[30];
+    char c;
+    int d = 0;
+    char temp[27];
     xintos(x, temp);
     while((c = temp[d++]) != '\0') {
         w->s[w->pos++] = c;
