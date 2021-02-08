@@ -17,6 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define MPIDR_HWID_MASK_LITE    0xFFFFFF
+
     .macro __ADR_L, dst, sym
         adrp    \dst, \sym
         add     \dst, \dst, :lo12:\sym
@@ -34,7 +36,7 @@ __entry:
 
 __el1entry:
     mrs     x0, mpidr_el1
-    and     x0, x0, #0xFF
+    and     x0, x0, #MPIDR_HWID_MASK_LITE
     cbz     x0, __run
     b       __sleep
 
