@@ -9,6 +9,22 @@
 
   An indespensible resource for the aspiring ARM architecure programmer
 
+- _*[ARM Generic Interrupt Controller Architecture Specification](https://developer.arm.com/documentation/ihi0048/b)*_
+
+  Don't even try to figure out the interrupt controller without checking here first
+
+- _*[ARM Cortex-A72 MPCore Processor Technical Reference Manual](https://developer.arm.com/documentation/100095/0001?lang=en)*_
+
+  The ARM TRM for the Cortex-A72, the processor housed by the Raspberry Pi 4B
+
+- _*[Learn the architechture: AArch64 memory model](https://developer.arm.com/documentation/102376/latest)*_
+
+  A solid primer on the ARMv8 memory model - the memory model used in CheesecakeOS
+
+- _*[Learn the architecture: AArch64 memory management](https://developer.arm.com/documentation/101811/0100)*_
+
+  A dive into the ARM MMU and TLBs, from the source
+
 #### Books
 - _*[Computer Systems: A Programmer's Perspective - Bryant & O'Hallaron](https://www.amazon.com/Computer-Systems-Programmers-Perspective-3rd/dp/013409266X)*_
 
