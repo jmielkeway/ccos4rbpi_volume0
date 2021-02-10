@@ -1,0 +1,53 @@
+#include "config/config.h"
+#include "arch/bare-metal.h"
+#include "arch/page.h"
+
+#define IDMAP_DIR_SIZE              (PAGE_SIZE * (PAGE_TABLE_LEVELS - 1))
+#define PAGE_GLOBAL_DIR_SIZE        (PAGE_SIZE * (PAGE_TABLE_LEVELS - 1))
+
+OUTPUT_ARCH(aarch64)
+ENTRY(_start)
+SECTIONS
+{
+    . = TEXT_OFFSET; 
+    .text.boot : {
+        _start = .;
+        *(.text.boot)
+    }
+    .text : { 
+        . = ALIGN(PAGE_SIZE);
+        _idmap_text_start = .;
+        *(.idmap.text)
+        _idmap_text_end = .;
+        *(.text) 
+    }
+    . = ALIGN(SECTION_SIZE);
+    _kernel_text_end = .;
+    .rodata : { 
+        *(.rodata) 
+    }
+    .data : { 
+        *(.data) 
+    }
+    . = ALIGN(PAGE_SIZE);
+    page_global_dir = .;
+    . += PAGE_GLOBAL_DIR_SIZE;
+    end_page_global_dir = .;
+    . = ALIGN(0x8);
+    bss_begin = .;
+    .bss : { 
+        *(.bss*) 
+    }
+    bss_end = .;
+    . = ALIGN(PAGE_SIZE);
+    init_stack = .;
+    . += INIT_STACK_SIZE;
+    . = ALIGN(SECTION_SIZE);
+    _end_permenant_image = .;
+    init_overwrite_storage = .;
+    page_idmap_dir = .;
+    . += IDMAP_DIR_SIZE;
+    end_page_idmap_dir = .;
+    . = ALIGN(SECTION_SIZE);
+    _end = .;
+}
