@@ -31,6 +31,7 @@
 #define TABLE_INDEX_MASK            ((NUM_ENTRIES_PER_TABLE) - 1)
 #define PAGE_SIZE                   ((UL(1)) << PAGE_SHIFT)
 #define PAGE_MASK                   (~((PAGE_SIZE) - 1))
+#define RAW_PAGE_TABLE_ADDR_MASK    (((UL(1) << VA_BITS) - 1) & (PAGE_MASK))
 #define SECTION_SIZE                ((UL(1)) << (PMD_SHIFT))
 #define SECTION_MASK                (~((SECTION_SIZE) - 1))
 
@@ -39,7 +40,6 @@
 #define PAGE_TABLE_TABLE            (0b11)
 #define PAGE_TABLE_SH               (0b11 << 8)
 #define PAGE_TABLE_ATTR(n)          (n << 2)
-
 
 #define NORMAL_INIT_MMU_FLAGS       PAGE_TABLE_AF | \
                                     PAGE_TABLE_SH | \

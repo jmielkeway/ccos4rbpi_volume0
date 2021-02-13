@@ -12,33 +12,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void memset(void *x, int c, unsigned long count)
-{
-    char *s = x;
-    while(count--) {
-        *(s++) = c;
-    }
-}
+#ifndef _ARCH_ASM_FUNCTIONS_H
+#define _ARCH_ASM_FUNCTIONS_H
 
-void xintos(unsigned long x, char *t)
-{
-    int temp_size = 0;
-    char c, temp[16];
-    *(t++) = '0';
-    *(t++) = 'x';
-    do {
-        c = x % 16;
-        if(c < 10) {
-            c = c + 0x30;
-        } else {
-            c = c + 0x37;
-        }
-        temp[temp_size++] = c;
-        x /= 16;
-    } while(x);
-    while(temp_size--) {
-        *(t++) = temp[temp_size];
-    }
-    *(t++) = '\0';
-    return;
-}
+void __dsb_sy();
+
+#endif
