@@ -15,6 +15,7 @@
 #ifndef _CAKE_STRING_H
 #define _CAKE_STRING_H
 
-void xintos(unsigned x, char *t);
+void memset(void *x, int c, unsigned long count);
+void xintos(unsigned long x, char *t);
 
 #endif

@@ -25,11 +25,12 @@
 #define MEM_TYPE_PCIE                   SET_BIT(5)
 
 #define MEM_FLAGS_NONE                  (0)
-#define MEM_FLAGS_KERNEL                SET_BIT(1)
-#define MEM_FLAGS_OVERWRITE             SET_BIT(2)
-#define MEM_FLAGS_BABY_BOOT             SET_BIT(3)
-#define MEM_FLAGS_ENDMAP                SET_BIT(4)
-#define MEM_FLAGS_TEXT                  SET_BIT(5)
+#define MEM_FLAGS_CAKE                  SET_BIT(1)
+#define MEM_FLAGS_CAKE_TEXT             SET_BIT(2)
+#define MEM_FLAGS_OVERWRITE             SET_BIT(3)
+#define MEM_FLAGS_BABY_BOOT             SET_BIT(4)
+#define MEM_FLAGS_ENDMAP                SET_BIT(5)
+#define MEM_FLAGS_TEXT                  SET_BIT(6)
 
 struct address_region {
     unsigned long start;

@@ -26,13 +26,13 @@ static struct address_region memory_map[] = {
     {
         .start = 0x0,
         .size = SET_BY_ARCH_AT_INIT,
-        .flags = MEM_FLAGS_KERNEL | MEM_FLAGS_TEXT,
+        .flags = MEM_FLAGS_CAKE_TEXT,
         .type = MEM_TYPE_SDRAM
     },
     {
         .start = SET_BY_ARCH_AT_INIT,
         .size = SET_BY_ARCH_AT_INIT,
-        .flags = MEM_FLAGS_KERNEL,
+        .flags = MEM_FLAGS_CAKE,
         .type = MEM_TYPE_SDRAM
     },
     {
@@ -128,13 +128,13 @@ struct address_map *addrmap()
     struct address_region addr_region_zero = {
         .start = 0x0,
         .size = (unsigned long) _kernel_text_end,
-        .flags = MEM_FLAGS_KERNEL | MEM_FLAGS_TEXT,
+        .flags = MEM_FLAGS_CAKE_TEXT,
         .type = MEM_TYPE_SDRAM
     };
     struct address_region addr_region_one = {
         .start = (unsigned long) _kernel_text_end,
         .size = (unsigned long) _end_permenant_image - (unsigned long) _kernel_text_end,
-        .flags = MEM_FLAGS_KERNEL,
+        .flags = MEM_FLAGS_CAKE,
         .type = MEM_TYPE_SDRAM
     };
     struct address_region addr_region_two = {

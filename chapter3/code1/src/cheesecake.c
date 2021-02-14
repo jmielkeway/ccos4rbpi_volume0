@@ -17,6 +17,7 @@
 
 extern void irq_init();
 extern void log_init();
+extern void paging_init();
 extern void timer_init();
 void init();
 
@@ -43,4 +44,6 @@ void init()
     log("IRQ MODULE INITIALIZED\r\n");
     timer_init();
     log("TIMER MODULE INITIALIZED\r\n");
+    paging_init();
+    log("PAGING MODULE INITIALIZED\r\n");
 }
