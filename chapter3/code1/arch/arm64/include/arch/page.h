@@ -36,7 +36,7 @@
 #define SECTION_MASK                (~((SECTION_SIZE) - 1))
 
 #define PAGE_TABLE_AF               BIT_SET(10)
-#define PAGE_TABLE_BLOCK            BIT_SET(1)
+#define PAGE_TABLE_BLOCK            BIT_SET(0)
 #define PAGE_TABLE_TABLE            (0b11)
 #define PAGE_TABLE_SH               (0b11 << 8)
 #define PAGE_TABLE_ATTR(n)          (n << 2)
