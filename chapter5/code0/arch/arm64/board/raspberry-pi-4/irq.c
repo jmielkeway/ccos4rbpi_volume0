@@ -16,6 +16,7 @@
 #include "board/bare-metal.h"
 #include "board/gic.h"
 
+#define SPID_SGI_TIMER      (0x03)
 #define SPID_TIMER3         (0x63)
 
 #define IRQ_IRQID_SHIFT     (0)
@@ -28,6 +29,7 @@
 #define IRQ_CPUID_VALUE(irq)    ((irq & IRQ_CPUID_MASK) >> IRQ_CPUID_SHIFT)
 
 extern unsigned int __irq_acknowledge();
+extern void __irq_broadcast_sgi(unsigned long sgi);
 extern void __irq_enable_spid(unsigned long spid);
 extern void __irq_end(unsigned int irq);
 extern void __irq_target_cpumask(unsigned long spid, unsigned long mask);
@@ -46,11 +48,15 @@ void handle_irq()
         if(irqid < 1020) {
             __irq_end(irq);
             switch(irqid) {
+                case SPID_SGI_TIMER:
+                    break;
                 case SPID_TIMER3:
+                    __irq_broadcast_sgi(SPID_SGI_TIMER);
                     timer_interrupt();
                     break;
                 default:
                     log("Encountered Undefined Interrupt: %x\r\n");
+                    break;
             }
         }
         else {
