@@ -17,10 +17,21 @@
 #include "board/devio.h"
 #include "board/gic.h"
 
+#define SGI_TARGET_LIST_FILTER_SHIFT   (24)
+
 .globl __irq_acknowledge
 __irq_acknowledge:
     __MOV_Q         x0, PHYS_TO_VIRT(GICC_IAR)
     __DEV_READ_32   w0, x0
+    ret
+
+.globl __irq_broadcast_sgi
+__irq_broadcast_sgi:
+    mov             x1, #1
+    lsl             x1, x1, #SGI_TARGET_LIST_FILTER_SHIFT
+    orr             x0, x0, x1
+    __MOV_Q         x1, PHYS_TO_VIRT(GICD_SGIR)
+    __dev_write_32  w0, x1
     ret
 
 .globl __irq_end
