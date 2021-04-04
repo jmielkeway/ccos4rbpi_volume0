@@ -5,7 +5,7 @@
   ##### [*Acknowledgements*](chapter0/acknowledgements.md)
   ##### [*Resources*](chapter0/resources.md)
   ##### [*Prerequisites*](chapter0/prerequisites.md)
-  ##### *Getting Started*
+  ##### [*Getting Started*](chapter0/getting-started.md)
 #### Parts[1]: Kernel Space
 #### Chapters[1]: Hello, Cheesecake!
   ##### *Conventions and Design*

@@ -1,19 +1,23 @@
+*Chapter Top* [Chapters[0]: Introduction](chapter0.md)  |  *Next Chapter* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)  
+*Previous Page* [Prerequisites](prerequisites.md)  |  *Next Page* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)
+
 ## Getting Started
 
 In this section, we will hold hands as we stroll through the intial setup for CheesecakeOS following these steps:
 
-1. [Launch an AWS EC2 instance](#create-an-aw2-ec2-instance)
+1. [Launch an AWS EC2 instance](#launch-an-aw2-ec2-instance)
 2. [Fork/clone the CheesecakeOS repo](#forkclone-the-cheesecakeos-repo)
 3. [Setup docker](#setup-docker)
 4. [Image SD card with Raspberry Pi OS](#image-sd-card-with-raspberry-pi-os)
 5. [Replace Raspberry Pi binary boot files](#replace-raspberry-pi-binary-boot-files)
-6. [Install USB to UART Drivers](#install-usb-to-uart-drivers)
-7. [Connect Raspberry Pi Mini UART to computer through USB](#connect-raspberry-pi-mini-uart-to-computer-through-usb).
-8. [Login to your Raspberry Pi through the console](#login-to-your-raspberry-pi-through-the-console)
+6. [Enable the Mini UART in RaspberryPi config.txt](enable-the-mini-uart-in-raspberrypi-configtxt)
+7. [Install USB to UART Drivers](#install-usb-to-uart-drivers)
+8. [Connect Raspberry Pi Mini UART to computer through USB](#connect-raspberry-pi-mini-uart-to-computer-through-usb)
+9. [Login to your Raspberry Pi through the console](#login-to-your-raspberry-pi-through-the-console)
 
 #### Launch an AWS EC2 instance
 
-This step is not requiried, especially if you have Debian Linux already. Otherwise, this can help sort out the environment. Head over to the [AWS EC2 Get Started Tutorial](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html). If you decide to launch an instance, I recommend you choose from the free tier eligible 64-bit x86 Ubuntu options. Afterwards connect to your instance and continue to step [2](#forkclone-the-cheesecakeos-repo).
+This step is not requiried, especially if you have Debian Linux already. Otherwise, this can help sort out the environment. Head over to the [AWS EC2 Get Started Tutorial](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html). If you decide to launch an instance, I recommend you choose from the free tier eligible 64-bit x86 Ubuntu options. Afterwards connect to your instance, setup your ssh key from the host in github, and continue to step [2](#forkclone-the-cheesecakeos-repo).
 
 #### Fork/Clone the CheesecakeOS Repo
 
@@ -73,11 +77,15 @@ After the image is built, the `build.sh` scripts can be used to build the source
 
 #### Image SD Card with Raspberry Pi OS
 
-Insert microSD card into computer. Open the Raspberry Pi Imager software. Select the RASPBERRY PI OS (32-BIT) option for the Operating System. Select the microSD card as the SD card. Click the WRITE button. This will write the OS to the card. At the same time, it will create the boot partition where we will ultimately place our own CheesecakeOS.
+Insert microSD card into computer. Open the Raspberry Pi Imager software. Select the RASPBERRY PI OS (32-BIT) option for the Operating System. Select the microSD card as the SD card. Click the WRITE button. This will write the OS to the card. At the same time, it will create the boot partition where we will ultimately place our own CheesecakeOS. When finished, place the SD into the RaspberryPi.
 
 #### Replace Raspberry Pi Binary Boot Files
 
 Unfortunately, Different versions of the Raspberry Pi Bootloader have different start up side effects for the mini UART device (at least). So we will want to use a specific version of the Raspberry Pi boot files, not neccesarily those that come with the latest image. Head on over to the [Raspberry Pi Firmware GitHub repository, with tag 1.20200512](https://github.com/raspberrypi/firmware/tree/1.20200512), and either clone or download a ZIP file. Copy the contents of the `boot` directory to the boot partition of the SD card, overwriting files with the same names. This will ensure we are working with a consistent, tested version of the bootloader, device tree, and startup files.
+
+#### Enable the Mini UART in RaspberryPi config.txt
+
+After the image has been written to the SD card, open the config.txt file from the boot partition and set the `enable_uart=1` config as described in the [RaspberryPi UART config documentation](https://www.raspberrypi.org/documentation/configuration/uart.md).
 
 #### Install USB to UART Drivers
 
@@ -93,4 +101,7 @@ The following section of the guide gives instructions for connecting to a termin
 
 After connecting to the terminal emulator, login to the Raspberry Pi with username `pi` and password `raspberry`. If everything has gone right, and you are ready to move on to the next chapter, you will see something that looks like:
 
-![Raspberry Pi Console Login](images/rpi4_uart_login.png)
+![Raspberry Pi Console Login](images/0001_rpi4_uart_login.png)
+
+*Chapter Top* [Chapters[0]: Introduction](chapter0.md)  |  *Next Chapter* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)  
+*Previous Page* [Prerequisites](prerequisites.md)  |  *Next Page* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)
