@@ -3,8 +3,8 @@
 #### [Chapters[0]: Introduction](chapter0/chapter0.md)
   ##### [*Disclaimer*](chapter0/disclaimer.md)
   ##### [*Acknowledgements*](chapter0/acknowledgements.md)
+  ##### [*Resources*](chapter0/resources.md)
   ##### *Prerequisites*
-  ##### *Resources*
   ##### *Getting Started*
 #### Parts[1]: Kernel Space
 #### Chapters[1]: Hello, Cheesecake!
