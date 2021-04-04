@@ -6,12 +6,13 @@
   ##### [*Resources*](chapter0/resources.md)
   ##### [*Prerequisites*](chapter0/prerequisites.md)
   ##### [*Getting Started*](chapter0/getting-started.md)
-#### Parts[1]: Kernel Space
-#### Chapters[1]: Hello, Cheesecake!
+### Parts[1]: Kernel Space
+#### [Chapters[1]: Hello, Cheesecake!](chapter1/chapter1.md)
+  ##### *Hello Cheesecake!*
   ##### *Conventions and Design*
-  ##### *Hello Cheesecake! Code*
   ##### *Building*
   ##### *Linking*
+  ##### *Logging*
 #### Chapters[2]: Processor Initiliazation and Exceptions
   ##### *ARM Stub*
   ##### *Priveledge Setup*
@@ -48,7 +49,7 @@
   ##### *Waitqueues*
   ##### *Workqueues*
   ##### *First Kernel Thread*
-#### Parts[2]: User Space
+### Parts[2]: User Space
 #### Chapters[9]: Virtual Memory and Fake Partition
   ##### *Building*
   ##### *Create Userspace Page Tables*
