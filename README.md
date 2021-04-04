@@ -4,7 +4,7 @@
   ##### [*Disclaimer*](chapter0/disclaimer.md)
   ##### [*Acknowledgements*](chapter0/acknowledgements.md)
   ##### [*Resources*](chapter0/resources.md)
-  ##### *Prerequisites*
+  ##### [*Prerequisites*](chapter0/prerequisites.md)
   ##### *Getting Started*
 #### Parts[1]: Kernel Space
 #### Chapters[1]: Hello, Cheesecake!
