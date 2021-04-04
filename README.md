@@ -1,7 +1,7 @@
 ## CheesecakeOS for Raspberry Pi - Volume 1
 ### Parts[0]: Welcome
 #### [Chapters[0]: Introduction](chapter0/chapter0.md)
-  ##### *Disclaimer*
+  ##### [*Disclaimer*](chapter0/disclaimer.md)
   ##### *Acknowledgements*
   ##### *Prerequisites*
   ##### *Resources*
