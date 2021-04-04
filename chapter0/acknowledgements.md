@@ -1,18 +1,26 @@
+*Chapter Top* [Chapters[0]: Introduction](chapter0.md)  |  *Next Chapter* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)  
+*Previous Page* [Disclaimer](disclaimer.md)  |  *Next Page* [Prerequisites](prerequisites.md)  
+
 ## Acknowledgements
 
-Writing an operating system is hard. Writing an open ebook about an operating system is also hard.
+Writing an operating system, even a simple one full of bugs, is hard. Writing an open ebook about writing an operating system is also hard. I want to acknowledge the giants on whose shoulders we stand.
 
-#### Randall Bryant and David O'Hallaron
+#### Carter Beauford and Hikaru Nakamura
 
-Authors of Computer Systems: A Programmer's Perspective. I rate it as the best book for aspiring software engineers. In my humble opinion, understanding this book will lift the reader from code-monkey-chump to core-developer-champ. They provide a world-class explanation of the compilation process and the mapping from the C programming language to assmbler. They provide world-class explanations of many other concepts as well. I consider reading this book and completing the labs to be prerequisites. These guys are true heroes.
-
-#### Sergey Matyukevich
-
-Creator of the Raspberry Pi OS educational github repository. This repository was, luckily, my first introduction to OS development. It served as the inspiration for the CheesecakeOS project. When I read Sergey's introduction, I conclude he hopes his project will grant readers and participants a good learning experience. It is my hope the CheesecakeOS project proves he was successful. It should come as no surprise to see major paralells between CheesecakeOS and his Raspberrry Pi OS. I am in no way ashamed to admit many ideas (as well as a material amount of code) contained here were lifted from there.
+CheesecakeOS was conceived during the COVID-19 pandemic. Carter Beauford and Hikaru Nakamura are two amazing talented professionals in their respective (and extremely competitive) fields. They have a way of making their craft appear so incredibly effortless. Their `Twitch` streams and `YouTube` videos were an essential source of motivation.
 
 #### Linus Tovralds
 
-Inventer or Linux, one of the greatest gifts to humanity. Operating system development, at least for this author, would be impossible without such a resource. The fact that the world's most popular enterprise OS is freely available for limitless study (and copying) is a true treat I am thankful for.
+Inventer or Linux, one of the greatest gifts to humanity. Operating system development, at least for this author, would be impossible without such a resource. The fact that the world's most popular enterprise OS is freely available for limitless study (and copying) is a true treat I am thankful for. Any resemblence between the CheesecakeOS source and Linux is not-at-all coincidental! The Linux Kernel was the go-to for grasping and verification of the implementation.
+
+
+#### Randall Bryant and David O'Hallaron
+
+Authors of Computer Systems: A Programmer's Perspective. My favorite book of all time. I rate it as the best book for aspiring software engineers. In my humble opinion, understanding this book will lift the reader from code-monkey-chump to core-developer-champ. They provide a world-class explanation of the compilation process, mapping from the C programming language to assmbler, and the services a user should expect an operating system to provide. I consider reading this book and completing the labs to be prerequisites. These guys are true heroes.
+
+#### Sergey Matyukevich
+
+Creator of the Raspberry Pi OS educational github repository. This repository was, luckily, my first introduction to OS development. It served as the inspiration for the CheesecakeOS project. When I read Sergey's introduction, I conclude he hopes his project will grant readers and participants a good learning experience. It is my hope the CheesecakeOS project proves he was successful. It should come as no surprise to see major parallels between CheesecakeOS and his Raspberrry Pi OS.
 
 #### Will Deacon
 
@@ -24,3 +32,6 @@ Wonderful beings whose mere existance is a constant source of inspiration.
 
 JHM
 Amsterdam, 2020-2021
+
+*Chapter Top* [Chapters[0]: Introduction](chapter0.md)  |  *Next Chapter* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)  
+*Previous Page* [Disclaimer](disclaimer.md)  |  *Next Page* [Prerequisites](prerequisites.md)  

@@ -2,7 +2,7 @@
 ### Parts[0]: Welcome
 #### [Chapters[0]: Introduction](chapter0/chapter0.md)
   ##### [*Disclaimer*](chapter0/disclaimer.md)
-  ##### *Acknowledgements*
+  ##### [*Acknowledgements*](chapter0/acknowledgements.md)
   ##### *Prerequisites*
   ##### *Resources*
   ##### *Getting Started*
