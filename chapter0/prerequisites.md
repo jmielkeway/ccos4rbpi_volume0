@@ -1,3 +1,6 @@
+*Chapter Top* [Chapters[0]: Introduction](chapter0.md)  |  *Next Chapter* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)   
+*Previous Page* [Resources](resources.md)  |  *Next Page* [Getting Started](getting-started.md)
+
 ## Prerequisites
 
 #### Books
@@ -26,7 +29,7 @@ An exemplary piece of literature, which gives a great feel for systems programmi
 
   \- Unix I/O
 
-Among others. Before starting on CheesecakeOS, absorb the lessons of this tome and work through the *_free_* labs for the authors' website. These labs are autograded so feedback on progress is available. Have I mentioned this book is a game changer?
+Among others. Before starting on CheesecakeOS, absorb the lessons of this tome and work through the *_free_* labs for the authors' website. These labs are autograded so feedback on progress and understanding is possible. Have I mentioned this book is a game changer? It may take a few weeks or months to get through the material. It is worth the investment.
 
 - **Linux Kernel Development by Robert Love(\*)**
 
@@ -45,7 +48,7 @@ The Raspberry Pi 4 is the greatest Raspberry Pi yet, featuring a four-core ARM C
 
 - **USB to UART Cable**
 
-In order to communicate with our OS (`I`) and have our OS communicate back with us (`O`) from a bare-metal context without the use of fancy things like USB or Ethernet drivers, we will use the GPIO Mini UART console. This console is accesible with a USB to UART (TTL) cable such as [this one](https://www.kiwi-electronics.nl/usb-to-ttl-serial-kabel). More information on getting setup with this cable and associated drivers is presented in the [Getting Started](getting_started.md) section.
+In order to communicate with our OS (`I`) and have our OS communicate back with us (`O`) from a bare-metal context without the use of fancy things like USB or Ethernet drivers, we will use the GPIO Mini UART console. This console is accesible with a USB to UART (TTL) cable such as [this one](https://www.kiwi-electronics.nl/usb-to-ttl-serial-kabel). More information on getting setup with this cable and associated drivers is presented in the [Getting Started](getting-started.md) section.
 
 - **Micro SD Card**
 
@@ -63,8 +66,11 @@ Probably only a requirement if you are using Windows. It is the software I use t
 
 - **AWS Account(\*)**
 
-Not required, but the [Getting Started](getting-started) tutorial assumes you will use an AWS Ubuntu Linux VM for development and building.
+Not required, but the [Getting Started](getting-started.md) tutorial assumes you will use an AWS Ubuntu Linux VM for development and building.
 
 - **Docker(\*)**
 
-Again, not required, but assumed in the [Getting Started](getting-started) guide.
+Again, not required, but assumed in the [Getting Started](getting-started.md) guide.
+
+*Chapter Top* [Chapters[0]: Introduction](chapter0.md)  |  *Next Chapter* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)   
+*Previous Page* [Resources](resources.md)  |  *Next Page* [Getting Started](getting-started.md)
