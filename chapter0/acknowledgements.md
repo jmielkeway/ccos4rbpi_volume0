@@ -1,5 +1,5 @@
 *Chapter Top* [Chapters[0]: Introduction](chapter0.md)  |  *Next Chapter* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)  
-*Previous Page* [Disclaimer](disclaimer.md)  |  *Next Page* [Prerequisites](prerequisites.md)  
+*Previous Page* [Disclaimer](disclaimer.md)  |  *Next Page* [Resources](resources.md)  
 
 ## Acknowledgements
 
@@ -34,4 +34,4 @@ JHM
 Amsterdam, 2020-2021
 
 *Chapter Top* [Chapters[0]: Introduction](chapter0.md)  |  *Next Chapter* [Chapters[1]: Hello, Cheesecake!](../chapter1/chapter1.md)  
-*Previous Page* [Disclaimer](disclaimer.md)  |  *Next Page* [Prerequisites](prerequisites.md)  
+*Previous Page* [Disclaimer](disclaimer.md)  |  *Next Page* [Resources](resources.md)  
