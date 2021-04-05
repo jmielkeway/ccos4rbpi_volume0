@@ -63,6 +63,10 @@ The `cheesecake_main` function, still in [src/cheesecake_main.c](code1/src/chees
 #include "cake/log.h"
 #include "arch/timing.h"
 
+extern void log_init();
+
+static void init();
+
 void cheesecake_main(void)
 {
     char *version = "Version: 0.1.1.2\r\n";
@@ -75,7 +79,7 @@ void cheesecake_main(void)
     }
 }
 
-void init()
+static void init()
 {
     log_init();
     log("LOG MODULE INITIALIZED\r\n");

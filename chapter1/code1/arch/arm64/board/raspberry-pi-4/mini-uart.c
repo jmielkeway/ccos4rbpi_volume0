@@ -23,7 +23,6 @@ static struct console console = {
     .write = uart_puts
 };
 
-
 static inline int check_ready()
 {
     return __uart_can_tx();
