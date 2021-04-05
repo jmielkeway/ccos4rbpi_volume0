@@ -16,11 +16,12 @@
 #include "arch/timing.h"
 
 extern void log_init();
+
 void init();
 
 void cheesecake_main(void)
 {
-    char *version = "Version: 0.1.2\r\n";
+    char *version = "Version: 0.1.1.2\r\n";
     init();
     log("Hello, Cheesecake!\r\n");
     while (1) {
