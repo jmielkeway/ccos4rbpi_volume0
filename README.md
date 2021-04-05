@@ -8,7 +8,7 @@
   ##### [*Getting Started*](chapter0/getting-started.md)
 ### Parts[1]: Kernel Space
 #### [Chapters[1]: Hello, Cheesecake!](chapter1/chapter1.md)
-  ##### *Hello Cheesecake!*
+  ##### [*Hello Cheesecake!*](chapter1/hello-cheesecake.md)
   ##### *Conventions and Design*
   ##### *Building*
   ##### *Linking*
