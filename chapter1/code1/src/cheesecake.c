@@ -17,7 +17,7 @@
 
 extern void log_init();
 
-void init();
+static void init();
 
 void cheesecake_main(void)
 {
@@ -31,7 +31,7 @@ void cheesecake_main(void)
     }
 }
 
-void init()
+static void init()
 {
     log_init();
     log("LOG MODULE INITIALIZED\r\n");
