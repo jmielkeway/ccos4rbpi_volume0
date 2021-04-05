@@ -17,7 +17,7 @@ extern void uart_puts(char *s);
 
 void cheesecake_main(void)
 {
-    char *version = "Version: 0.1.1\r\n";
+    char *version = "Version: 0.1.0.1\r\n";
     uart_puts("Hello, Cheesecake!\r\n");
     while (1) {
         uart_puts(version);

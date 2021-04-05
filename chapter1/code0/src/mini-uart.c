@@ -12,12 +12,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-extern int  __uart_can_io();
+extern int  __uart_can_tx();
 extern void __uart_putchar(char c);
 
 static inline int check_ready()
 {
-    return __uart_can_io();
+    return __uart_can_tx();
 }
 
 static inline void uart_putchar(char c)
