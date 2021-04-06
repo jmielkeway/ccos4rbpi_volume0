@@ -10,8 +10,7 @@
 #### [Chapters[1]: Hello, Cheesecake!](chapter1/chapter1.md)
   ##### [*Hello Cheesecake!*](chapter1/hello-cheesecake.md)
   ##### [*Conventions and Design*](chapter1/conventions-design.md)
-  ##### *Building*
-  ##### *Linking*
+  ##### [*Building and Linking*](chapter1/building-linking.md)
   ##### *Logging*
 #### Chapters[2]: Processor Initiliazation and Exceptions
   ##### *ARM Stub*
