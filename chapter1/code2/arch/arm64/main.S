@@ -45,5 +45,5 @@ __zerobss:
     sub     x1, x1, x0
     str     xzr, [x0], #8
     subs    x1, x1, #8
-    b.gt    __zerobss
+    b.hi    __zerobss
     ret
