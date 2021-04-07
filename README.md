@@ -11,7 +11,7 @@
   ##### [*Hello Cheesecake!*](chapter1/hello-cheesecake.md)
   ##### [*Conventions and Design*](chapter1/conventions-design.md)
   ##### [*Building and Linking*](chapter1/building-linking.md)
-  ##### *Logging*
+  ##### [*Logging*](chapter1/logging.md)
 #### Chapters[2]: Processor Initiliazation and Exceptions
   ##### *ARM Stub*
   ##### *Priveledge Setup*
