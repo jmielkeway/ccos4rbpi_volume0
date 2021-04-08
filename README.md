@@ -13,7 +13,7 @@
   ##### [*Building and Linking*](chapter1/building-linking.md)
   ##### [*Logging*](chapter1/logging.md)
 #### [Chapters[2]: Processor Initiliazation and Exceptions](chapter2/chapter2.md)
-  ##### *Setting the Exception Level in the ARM Stub*
+  ##### [*Setting the Exception Level in the ARM Stub*](chapter2/arm-stub.md)
   ##### *Exceptions and the ARM Exception Vector Table*
   ##### *The Interrupt Controller*
   ####  *Timer Interrupts*
