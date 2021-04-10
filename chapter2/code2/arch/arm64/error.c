@@ -14,27 +14,7 @@
 
 #include "cake/log.h"
 
-const char *error_messages[] = {
-    "INVALID_SYNC_EL1T",
-    "INVALID_IRQ_EL1T",
-    "INVALID_FIQ_EL1T",
-    "INVALID_ERROR_EL1T",
-    "INVALID_SYNC_EL1H",
-    "INVALID_IRQ_EL1H",
-    "INVALID_FIQ_EL1H",
-    "INVALID_ERROR_EL1H",
-    "INVALID_SYNC_EL0_64",
-    "INVALID_IRQ_EL0_64",
-    "INVALID_FIQ_EL0_64",
-    "INVALID_ERROR_EL0_64",
-    "INVALID_SYNC_EL0_32",
-    "INVALID_IRQ_EL0_32",
-    "INVALID_FIQ_EL0_32",
-    "INVALID_ERROR_EL0_32"
-};
-
-void log_invalid_exception(int idx)
+void log_invalid_exception(unsigned long esr)
 {
-    const char *message = error_messages[idx];
-    log("Encountered Invalid Exception Entry: %s\r\n", message);
+    log("Encountered Invalid Exception Entry with ESR: %x\r\n", esr);
 }

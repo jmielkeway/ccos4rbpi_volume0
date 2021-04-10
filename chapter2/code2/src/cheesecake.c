@@ -17,12 +17,13 @@
 
 extern void irq_init();
 extern void log_init();
-void init();
+
+static void init();
 
 void cheesecake_main(void)
 {
     unsigned long count = 1;
-    char *version = "0.2.6";
+    char *version = "0.2.2.6";
     init();
     log("Hello, Cheesecake!\r\n");
     while (1) {
@@ -33,7 +34,7 @@ void cheesecake_main(void)
     }
 }
 
-void init()
+static void init()
 {
     log_init();
     log("LOG MODULE INITIALIZED\r\n");
