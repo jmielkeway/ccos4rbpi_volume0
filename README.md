@@ -14,9 +14,9 @@
   ##### [*Logging*](chapter1/logging.md)
 #### [Chapters[2]: Processor Initiliazation and Exceptions](chapter2/chapter2.md)
   ##### [*Setting the Exception Level in the ARM Stub*](chapter2/arm-stub.md)
-  ##### *Exceptions and the ARM Exception Vector Table*
+  ##### [*Exceptions and the ARM Exception Vector Table*](chapter2/exception-vector-table.md)
   ##### *The Interrupt Controller*
-  ####  *Timer Interrupts*
+  ##### *Timer Interrupts*
 #### Chapters[3]: Memory Management Unit
   ##### *ARM Page Tables*
   ##### *Page Attributes and Virtual Addresses*
