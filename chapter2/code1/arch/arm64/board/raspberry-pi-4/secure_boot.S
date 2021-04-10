@@ -50,29 +50,29 @@
 #define L2CTLR_EL1_VALUE    0b00100010
 
 #define CPUECTLR_EL1        s3_1_c15_c2_1
-#define CPUECTLR_EL1_SMPEN  SET_BIT(6)
+#define CPUECTLR_EL1_SMPEN  BIT_SET(6)
 
-#define ACTLR_EL3_VALUE     (SET_BIT(6) | \
-                             SET_BIT(5) | \
-                             SET_BIT(4) | \
-                             SET_BIT(1) | \
-                             SET_BIT(0))
+#define ACTLR_EL3_VALUE     (BIT_SET(6) | \
+                             BIT_SET(5) | \
+                             BIT_SET(4) | \
+                             BIT_SET(1) | \
+                             BIT_SET(0))
 
-#define SCR_EL3_RW          SET_BIT(10)
-#define SCR_EL3_SMD         SET_BIT(7)
-#define SCR_EL3_RES1_5      SET_BIT(5)
-#define SCR_EL3_RES1_4      SET_BIT(4)
-#define SCR_EL3_NS          SET_BIT(0)
+#define SCR_EL3_RW          BIT_SET(10)
+#define SCR_EL3_SMD         BIT_SET(7)
+#define SCR_EL3_RES1_5      BIT_SET(5)
+#define SCR_EL3_RES1_4      BIT_SET(4)
+#define SCR_EL3_NS          BIT_SET(0)
 #define SCR_EL3_VALUE       (SCR_EL3_RW | \
                              SCR_EL3_SMD | \
                              SCR_EL3_RES1_5 | \
                              SCR_EL3_RES1_4 | \
                              SCR_EL3_NS)
 
-#define SPSR_EL3_D          SET_BIT(9)
-#define SPSR_EL3_A          SET_BIT(8)
-#define SPSR_EL3_I          SET_BIT(7)
-#define SPSR_EL3_F          SET_BIT(6)
+#define SPSR_EL3_D          BIT_SET(9)
+#define SPSR_EL3_A          BIT_SET(8)
+#define SPSR_EL3_I          BIT_SET(7)
+#define SPSR_EL3_F          BIT_SET(6)
 #define SPSR_EL3_EL1h       0b0101
 #define SPSR_EL3_VALUE      (SPSR_EL3_D | \
                              SPSR_EL3_A | \
@@ -80,15 +80,15 @@
                              SPSR_EL3_F | \
                              SPSR_EL3_EL1h)
 
-#define HCR_EL2_RW          SET_BIT(31)
+#define HCR_EL2_RW          BIT_SET(31)
 #define HCR_EL2_VALUE       HCR_EL2_RW
 
-#define SCTLR_EL1_RES1_29   SET_BIT(29)
-#define SCTLR_EL1_RES1_28   SET_BIT(28)
-#define SCTLR_EL1_RES1_23   SET_BIT(23)
-#define SCTLR_EL1_RES1_22   SET_BIT(22)
-#define SCTLR_EL1_RES1_20   SET_BIT(20)
-#define SCTLR_EL1_RES1_11   SET_BIT(11)
+#define SCTLR_EL1_RES1_29   BIT_SET(29)
+#define SCTLR_EL1_RES1_28   BIT_SET(28)
+#define SCTLR_EL1_RES1_23   BIT_SET(23)
+#define SCTLR_EL1_RES1_22   BIT_SET(22)
+#define SCTLR_EL1_RES1_20   BIT_SET(20)
+#define SCTLR_EL1_RES1_11   BIT_SET(11)
 #define SCTLR_EL1_VALUE     (SCTLR_EL1_RES1_29 | \
                              SCTLR_EL1_RES1_28 | \
                              SCTLR_EL1_RES1_23 | \
@@ -100,11 +100,11 @@
 
 .globl __secure_board_specific_setup
 __secure_board_specific_setup:
-    mov             x28, x30
-    bl              __setup_local_control
-    bl              __setup_cortex_a72_regs
-    bl              __setup_arm_arch_regs
-    mov             x30, x28
+    mov     x28, x30
+    bl      __setup_local_control
+    bl      __setup_cortex_a72_regs
+    bl      __setup_arm_arch_regs
+    mov     x30, x28
     ret
 
 __setup_local_control:
