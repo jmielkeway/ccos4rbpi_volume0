@@ -25,7 +25,6 @@
 
 .globl __entry
 __entry:
-    msr     daifset, 0b1111
     bl      __secure_board_specific_setup
     adr     x0, __el1entry
     msr     elr_el3, x0
@@ -56,5 +55,5 @@ __zerobss:
     sub     x1, x1, x0
     str     xzr, [x0], #8
     subs    x1, x1, #8
-    b.gt    __zerobss
+    b.hi    __zerobss
     ret

@@ -12,8 +12,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "board/gic.h"
-
 extern unsigned int  __irq_acknowledge();
 extern void __irq_end(unsigned int irq);
 
