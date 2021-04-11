@@ -18,12 +18,13 @@
 extern void irq_init();
 extern void log_init();
 extern void timer_init();
-void init();
+
+static void init();
 
 void cheesecake_main(void)
 {
     unsigned long count = 1;
-    char *version = "0.2.7";
+    char *version = "0.2.3.7";
     init();
     log("Hello, Cheesecake!\r\n");
     IRQ_ENABLE();
@@ -35,7 +36,7 @@ void cheesecake_main(void)
     }
 }
 
-void init()
+static void init()
 {
     log_init();
     log("LOG MODULE INITIALIZED\r\n");

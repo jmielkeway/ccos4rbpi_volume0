@@ -25,7 +25,6 @@
 
 .globl __entry
 __entry:
-    msr     daifset, 0b1111
     bl      __secure_board_specific_setup
     adr     x0, __el1entry
     msr     elr_el3, x0
@@ -48,13 +47,13 @@ __run:
     mov         sp, x13
     adr         x0, bss_begin
     adr         x1, bss_end
+    sub         x1, x1, x0
     bl          __zerobss
     bl          cheesecake_main
     b           __sleep
 
 __zerobss:
-    sub     x1, x1, x0
     str     xzr, [x0], #8
     subs    x1, x1, #8
-    b.gt    __zerobss
+    b.hi    __zerobss
     ret
