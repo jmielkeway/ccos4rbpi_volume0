@@ -15,6 +15,6 @@
 #ifndef _ARCH_BARE_METAL_H
 #define _ARCH_BARE_METAL_H
 
-#define SET_BIT(pos)                (1 << (pos))
+#define BIT_SET(pos)                (1 << (pos))
 
 #endif
