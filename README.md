@@ -17,12 +17,12 @@
   ##### [*Exceptions and the ARM Exception Vector Table*](chapter2/exception-vector-table.md)
   ##### [*The Interrupt Controller*](chapter2/interrupt-controller.md)
   ##### [*Timer Interrupts*](chapter2/timer-interrupts.md)
-#### Chapters[3]: Memory Management Unit
+#### [Chapters[3]: Memory Management Unit](chapter3/chapter3.md)
   ##### *ARM Page Tables*
   ##### *Page Attributes and Virtual Addresses*
   ##### *Establishing Boot Tables*
-  ##### *The Bootmem Allocator*
-  ##### *Creating Global Page Directory*
+  ##### *The Baby-Boot Allocator*
+  ##### *Creating the Global Page Directory*
   ##### *Turning on the MMU*
 #### Chapters[4]: Caches
   ##### *Preliminary ARM Requirements*
