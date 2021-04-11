@@ -16,7 +16,7 @@
   ##### [*Setting the Exception Level in the ARM Stub*](chapter2/arm-stub.md)
   ##### [*Exceptions and the ARM Exception Vector Table*](chapter2/exception-vector-table.md)
   ##### [*The Interrupt Controller*](chapter2/interrupt-controller.md)
-  ##### *Timer Interrupts*
+  ##### [*Timer Interrupts*](chapter2/timer-interrupts.md)
 #### Chapters[3]: Memory Management Unit
   ##### *ARM Page Tables*
   ##### *Page Attributes and Virtual Addresses*
