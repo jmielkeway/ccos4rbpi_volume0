@@ -18,11 +18,12 @@
 
 #define SPID_TIMER3     (0x63)
 
-struct irq_read_val {
-    unsigned int irqid: 10;
-    unsigned long cpuid: 3;
-    unsigned long reserved: 19;
-};
+#define IRQ_IRQID_SHIFT     (0)
+#define IRQ_CPUID_SHIFT     (10)
+#define IRQ_IRQID_MASK      (0x000003FF)
+#define IRQ_CPUID_MASK      (0x00001C00)
+#define IRQ_IRQID_VALUE(irq)    ((irq & IRQ_IRQID_MASK) >> IRQ_IRQID_SHIFT)
+#define IRQ_CPUID_VALUE(irq)    ((irq & IRQ_CPUID_MASK) >> IRQ_CPUID_SHIFT)
 
 extern unsigned int  __irq_acknowledge();
 extern void __irq_enable_spid(unsigned long spid);
@@ -39,15 +40,16 @@ void handle_irq()
 {
     do {
         unsigned int irq = __irq_acknowledge();
-        struct irq_read_val *irqrv = (struct irq_read_val *) &irq;
-        if(irqrv->irqid < 1020) {
+        unsigned int irqid = IRQ_IRQID_VALUE(irq);
+        if(irqid < 1020) {
             __irq_end(irq);
-            switch(irqrv->irqid) {
+            switch(irqid) {
                 case SPID_TIMER3:
                     timer_interrupt();
                     break;
                 default:
                     log("Encountered Undefined Interrupt: %x\r\n");
+                    break;
             }
         }
         else {
