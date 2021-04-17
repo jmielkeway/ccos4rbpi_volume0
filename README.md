@@ -18,8 +18,7 @@
   ##### [*The Interrupt Controller*](chapter2/interrupt-controller.md)
   ##### [*Timer Interrupts*](chapter2/timer-interrupts.md)
 #### [Chapters[3]: Memory Management Unit](chapter3/chapter3.md)
-  ##### *ARM Page Tables*
-  ##### *Page Attributes and Virtual Addresses*
+  ##### [*ARM Page Tables*](chapter3/arm-page-tables.md)
   ##### *Establishing Boot Tables*
   ##### *The Baby-Boot Allocator*
   ##### *Creating the Global Page Directory*
