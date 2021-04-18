@@ -23,7 +23,10 @@
 #define UL(x)                           (x##UL)
 #endif
 
-#define SET_BIT(pos)        ((UL(1)) << (pos))
-#define INIT_STACK_SIZE     (((UL(1)) << (PAGE_SHIFT)) << 3)
+#define BIT_SET(pos)        ((UL(1)) << (pos))
+#define BIT_NOT_SET(pos)    (0)
+
+#define INIT_STACK_SHIFT    (3)
+#define INIT_STACK_SIZE     (((UL(1)) << (PAGE_SHIFT)) << (INIT_STACK_SHIFT))
 
 #endif

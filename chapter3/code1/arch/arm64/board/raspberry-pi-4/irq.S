@@ -22,13 +22,6 @@ __irq_acknowledge:
     __DEV_READ_32   w0, x0
     ret
 
-.globl __irq_end
-__irq_end:
-    __MOV_Q         x1, GICC_EOIR
-    __DEV_WRITE_32  w0, x1
-    isb
-    ret
-
 .globl __irq_enable_spid
 __irq_enable_spid:
     mov             x13, #5
@@ -44,16 +37,23 @@ __irq_enable_spid:
     isb
     ret
 
+.globl __irq_end
+__irq_end:
+    __MOV_Q         x1, GICC_EOIR
+    __DEV_WRITE_32  w0, x1
+    isb
+    ret
+
 .globl __irq_target_cpumask
 __irq_target_cpumask:
     mov             w3, #3
-    and             w3, w0, w3 //x3 = spid offset
+    and             w3, w0, w3
     lsl             w3, w3, #3
-    lsl             w1, w1, w3 // w1 = val to write
+    lsl             w1, w1, w3
     mov             w3, #~(3)
-    and             w2, w0, w3 //x3 = spid & mask
+    and             w2, w0, w3
     __MOV_Q         x3, GICD_ITARGETSR_OFFSET
-    add             x3, x3, x2 // x3 = base
+    add             x3, x3, x2
     __DEV_READ_32   w4, x3
     orr             w4, w4, w1
     __DEV_WRITE_32  w4, x3
