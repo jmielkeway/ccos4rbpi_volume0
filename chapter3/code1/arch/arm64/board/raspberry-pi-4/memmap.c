@@ -16,6 +16,10 @@
 #include "arch/memory.h"
 #include "arch/page.h"
 
+#define MEMORY_SIZE_2GB                 0x080000000
+#define MEMORY_SIZE_4GB                 0x100000000
+#define MEMORY_SIZE_8GB                 0x200000000
+
 #define END_OF_USABLE_SDRAM             MEMORY_SIZE
 #define VC_SDRAM_SIZE                   0x8000000
 #define START_OF_VC_SDRAM               (0x40000000 - (VC_SDRAM_SIZE))
