@@ -1,5 +1,5 @@
 *Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter4/chapter4.md)  
-*Previous Page*  [ARM Page Tables](arm-page-tables.md) |  *Next Page* [The Baby-boot Allocator](baby-boot-allocator.md)
+*Previous Page*  [ARM Page Tables](arm-page-tables.md) |  *Next Page* [Linear Mapping the Entire Physical Address Space](linear-mapping.md)
 
 ## Establishing Boot Tables([chapter3/code0](code0))
 
@@ -427,4 +427,4 @@ We are not yet ready to turn on the Memory Management Unit. However, in this sec
 ![Raspberry Pi Boot Table Cheesecake](images/0301_rpi4_boot.png)
 
 *Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter4/chapter4.md)  
-*Previous Page*  [ARM Page Tables](arm-page-tables.md) |  *Next Page* [The Baby-boot Allocator](baby-boot-allocator.md)
+*Previous Page*  [ARM Page Tables](arm-page-tables.md) |  *Next Page* [Linear Mapping the Entire Physical Address Space](linear-mapping.md)

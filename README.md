@@ -20,8 +20,7 @@
 #### [Chapters[3]: Memory Management Unit](chapter3/chapter3.md)
   ##### [*ARM Page Tables*](chapter3/arm-page-tables.md)
   ##### [*Establishing Boot Tables*](chapter3/boot-tables.md)
-  ##### *The Baby-Boot Allocator*
-  ##### *Creating the Global Page Directory*
+  ##### [*Linear Mapping the Entire Physical Address Space*](chapter3/linear-mapping.md)
   ##### *Turning on the MMU*
 #### Chapters[4]: Caches
   ##### *Preliminary ARM Requirements*
