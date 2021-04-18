@@ -7,8 +7,7 @@ Virtual Memory is a fundamental abstration of a modern operating system. In this
 
 - [ARM Page Tables](arm-page-tables.md) covers the basics of how virtual memory is implemented and configured in ARM - through the use of page tables. :muscle:
 - [Establishing Boot Tables](boot-tables.md) shows our CheesecakeOS bootstrapping the MMU with the first statically allocated page tables. :cake:
-- [The Baby-Boot Allocator](baby-boot-allocator.md) is a small allocator we will setup, necessary for us to finalize kernel page-table setup. :cake:
-- [Creating the Global Page Directory](global-page-directory.md) is the penultimate low-level kernel memory-managment step, linear mapping the entire memory of the system. :cake:
+- [Linear Mapping the Entire Physical Address Space](linear-mapping.md) is the penultimate low-level kernel memory-managment step, establishing a boot-time allocator, and linear mapping the entire memory of the system. :cake:
 - [Turning on the MMU](mmu.md) will be this chapter's victory lap! :cake:
 
 *Previous Chapter* [Chapters[2]: Processor Initialization and Exceptions](../chapter2/chapter2.md) | *Next Chapter* [Chapters[4]: Caches](../chapter4/chapter4.md)  
