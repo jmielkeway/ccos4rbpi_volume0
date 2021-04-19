@@ -25,7 +25,7 @@
 #define IRQ_IRQID_VALUE(irq)    ((irq & IRQ_IRQID_MASK) >> IRQ_IRQID_SHIFT)
 #define IRQ_CPUID_VALUE(irq)    ((irq & IRQ_CPUID_MASK) >> IRQ_CPUID_SHIFT)
 
-extern unsigned int  __irq_acknowledge();
+extern unsigned int __irq_acknowledge();
 extern void __irq_enable_spid(unsigned long spid);
 extern void __irq_end(unsigned int irq);
 extern void __irq_target_cpumask(unsigned long spid, unsigned long mask);

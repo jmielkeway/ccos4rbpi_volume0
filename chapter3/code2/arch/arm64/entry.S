@@ -78,7 +78,7 @@ vectors:
     __VECTABLE_ENTRY    __invalid_entry
     __VECTABLE_ENTRY    __invalid_entry
     __VECTABLE_ENTRY    __invalid_entry
-    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __sync_el1h
     __VECTABLE_ENTRY    __irq_el1h
     __VECTABLE_ENTRY    __invalid_entry
     __VECTABLE_ENTRY    __invalid_entry
@@ -91,6 +91,13 @@ vectors:
     __VECTABLE_ENTRY    __invalid_entry
     __VECTABLE_ENTRY    __invalid_entry
 
+
+__sync_el1h:
+    mrs     x0, esr_el1
+    mrs     x1, far_el1
+    bl      handle_sync
+    b       __exception_hang
+
 __irq_el1h:
     __ENTRY_SAVE
     bl  handle_irq
@@ -100,6 +107,5 @@ __invalid_entry:
     mrs     x0, esr_el1
     bl      log_invalid_exception
 __exception_hang:
-    wfe     
+    wfe
     b       __exception_hang
-
