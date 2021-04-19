@@ -18,29 +18,6 @@
 
 #include "exec/asm-offsets.h"
 
-#define INVALID_SYNC_EL1T       (0)
-#define INVALID_IRQ_EL1T        (1)
-#define INVALID_FIQ_EL1T        (2)
-#define INVALID_ERROR_EL1T      (3)
-#define INVALID_SYNC_EL1H       (4)
-#define INVALID_IRQ_EL1H        (5)
-#define INVALID_FIQ_EL1H        (6)
-#define INVALID_ERROR_EL1H      (7)
-#define INVALID_SYNC_EL0_64     (8)
-#define INVALID_IRQ_EL0_64      (9)
-#define INVALID_FIQ_EL0_64      (10)
-#define INVALID_ERROR_EL0_64    (11)
-#define INVALID_SYNC_EL0_32     (12)
-#define INVALID_IRQ_EL0_32      (13)
-#define INVALID_FIQ_EL0_32      (14)
-#define INVALID_ERROR_EL0_32    (15)
-
-    .macro __HANDLE_INVALID_ENTRY, idx
-        mov     x0, \idx
-        bl      log_invalid_exception
-        b       __exception_hang
-    .endm
-
     .macro __VECTABLE_ENTRY, label
         .align 7
         b \ label
@@ -94,76 +71,35 @@
         eret
     .endm
 
-__exception_hang:
-    wfe
-    b   __exception_hang
-
 .align 11
 .global vectors
 vectors:
-    __VECTABLE_ENTRY    sync_el1t
-    __VECTABLE_ENTRY    irq_el1t
-    __VECTABLE_ENTRY    fiq_el1t
-    __VECTABLE_ENTRY    error_el1t
-    __VECTABLE_ENTRY    sync_el1h
-    __VECTABLE_ENTRY    irq_el1h
-    __VECTABLE_ENTRY    fiq_el1h
-    __VECTABLE_ENTRY    error_el1h
-    __VECTABLE_ENTRY    sync_el0_64
-    __VECTABLE_ENTRY    irq_el0_64
-    __VECTABLE_ENTRY    fiq_el0_64
-    __VECTABLE_ENTRY    error_el0_64
-    __VECTABLE_ENTRY    sync_el0_32
-    __VECTABLE_ENTRY    irq_el0_32
-    __VECTABLE_ENTRY    fiq_el0_32
-    __VECTABLE_ENTRY    error_el0_32
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __irq_el1h
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
+    __VECTABLE_ENTRY    __invalid_entry
 
-sync_el1t:
-    __HANDLE_INVALID_ENTRY  INVALID_SYNC_EL1T
-
-irq_el1t:
-    __HANDLE_INVALID_ENTRY  INVALID_IRQ_EL1T
-
-fiq_el1t:
-    __HANDLE_INVALID_ENTRY  INVALID_FIQ_EL1T
-
-error_el1t:
-    __HANDLE_INVALID_ENTRY  INVALID_ERROR_EL1T
-
-sync_el1h:
-    __HANDLE_INVALID_ENTRY  INVALID_SYNC_EL1H
-
-irq_el1h:
+__irq_el1h:
     __ENTRY_SAVE
     bl  handle_irq
     __ENTRY_RESTORE
 
-fiq_el1h:
-    __HANDLE_INVALID_ENTRY  INVALID_FIQ_EL1H
+__invalid_entry:
+    mrs     x0, esr_el1
+    bl      log_invalid_exception
+__exception_hang:
+    wfe     
+    b       __exception_hang
 
-error_el1h:
-    __HANDLE_INVALID_ENTRY  INVALID_ERROR_EL1H
-
-sync_el0_64:
-    __HANDLE_INVALID_ENTRY  INVALID_SYNC_EL0_64
-
-irq_el0_64:
-    __HANDLE_INVALID_ENTRY  INVALID_IRQ_EL0_64
-
-fiq_el0_64:
-    __HANDLE_INVALID_ENTRY  INVALID_FIQ_EL0_64
-
-error_el0_64:
-    __HANDLE_INVALID_ENTRY  INVALID_ERROR_EL0_64
-
-sync_el0_32:
-    __HANDLE_INVALID_ENTRY  INVALID_SYNC_EL0_32
-
-irq_el0_32:
-    __HANDLE_INVALID_ENTRY  INVALID_IRQ_EL0_32
-
-fiq_el0_32:
-    __HANDLE_INVALID_ENTRY  INVALID_FIQ_EL0_32
-
-error_el0_32:
-    __HANDLE_INVALID_ENTRY  INVALID_ERROR_EL0_32
