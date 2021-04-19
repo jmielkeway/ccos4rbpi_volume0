@@ -23,13 +23,6 @@ __irq_acknowledge:
     __DEV_READ_32   w0, x0
     ret
 
-.globl __irq_end
-__irq_end:
-    __MOV_Q         x1, PHYS_TO_VIRT(GICC_EOIR)
-    __DEV_WRITE_32  w0, x1
-    isb
-    ret
-
 .globl __irq_enable_spid
 __irq_enable_spid:
     mov             x13, #5
@@ -45,6 +38,13 @@ __irq_enable_spid:
     isb
     ret
 
+.globl __irq_end
+__irq_end:
+    __MOV_Q         x1, PHYS_TO_VIRT(GICC_EOIR)
+    __DEV_WRITE_32  w0, x1
+    isb
+    ret
+
 .globl __irq_target_cpumask
 __irq_target_cpumask:
     mov             w3, #3
@@ -52,7 +52,7 @@ __irq_target_cpumask:
     lsl             w3, w3, #3
     lsl             w1, w1, w3
     mov             w3, #~(3)
-    and             w2, w0, w3 
+    and             w2, w0, w3
     __MOV_Q         x3, PHYS_TO_VIRT(GICD_ITARGETSR_OFFSET)
     add             x3, x3, x2
     __DEV_READ_32   w4, x3

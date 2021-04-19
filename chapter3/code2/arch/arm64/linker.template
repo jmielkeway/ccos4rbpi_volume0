@@ -48,9 +48,6 @@ SECTIONS
     page_idmap_dir = .;
     . += IDMAP_DIR_SIZE;
     end_page_idmap_dir = .;
-    mini_uart_debug_dir = .;
-    . += PAGE_SIZE;
-    end_mini_uart_debug_dir = .;
     . = ALIGN(SECTION_SIZE);
     _end = .;
 }

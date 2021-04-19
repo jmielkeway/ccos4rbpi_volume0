@@ -45,19 +45,31 @@
         and     \end, \end, (NUM_ENTRIES_PER_TABLE - 1)
         lsr     \phys, \phys, #PMD_SHIFT
         orr     \phys, \flags, \phys, lsl #PMD_SHIFT
-     9999:
+     9998:
         str     \phys, [\tbl, \start, lsl #3]
         add     \start, \start, #1
         add     \phys, \phys, #SECTION_SIZE
         cmp     \start, \end
-        b.ls    9999b
+        b.ls    9998b
+    .endm
+
+    .macro __ZERO_PAGE_TABLE, start, end
+        adrp            x0, \start
+        adrp            x1, \end
+        sub             x1, x1, x0
+    9999:
+        stp             xzr, xzr, [x0], #16
+        stp             xzr, xzr, [x0], #16
+        stp             xzr, xzr, [x0], #16
+        stp             xzr, xzr, [x0], #16
+        subs            x1, x1, #64
+        b.ne            9999b
     .endm
 
 .section ".text.boot"
 
 .globl __entry
 __entry:
-    msr     daifset, 0b1111
     bl      __secure_board_specific_setup
     adr     x0, __el1entry
     msr     elr_el3, x0
@@ -80,15 +92,15 @@ __run:
     add         sp, x13, #INIT_STACK_SIZE
     __ADR_L     x0, bss_begin
     __ADR_L     x1, bss_end
+    sub         x1, x1, x0
     bl          __zerobss
     bl          cheesecake_main
     b           __sleep
 
 __zerobss:
-    sub     x1, x1, x0
     str     xzr, [x0], #8
     subs    x1, x1, #8
-    b.gt    __zerobss
+    b.hi    __zerobss
     ret
 
 .section ".idmap.text"
@@ -102,44 +114,26 @@ __primary_init:
     br      x8
 
 __create_page_tables:
-    adrp            x0, page_idmap_dir
-    adrp            x1, end_page_idmap_dir
-    sub             x1, x1, x0
-1:  
-    stp             xzr, xzr, [x0], #16
-    stp             xzr, xzr, [x0], #16
-    stp             xzr, xzr, [x0], #16
-    stp             xzr, xzr, [x0], #16
-    subs            x1, x1, #64
-    b.ne            1b
-    adrp            x0, page_global_dir
-    adrp            x1, end_page_global_dir
-    sub             x1, x1, x0
-1:      
-    stp             xzr, xzr, [x0], #16
-    stp             xzr, xzr, [x0], #16
-    stp             xzr, xzr, [x0], #16
-    stp             xzr, xzr, [x0], #16
-    subs            x1, x1, #64
-    b.ne            1b
-    mov             x7, NORMAL_INIT_MMU_FLAGS
-    adrp            x0, page_idmap_dir
-    adrp            x3, _idmap_text_start
-    __create_pgd    x0, x3, x5, x6
-    mov             x5, x3
-    __ADR_L         x6, _idmap_text_end
-    __BLOCK_MAP     x0, x7, x3, x5, x6
-    adrp            x0, page_global_dir
-    __MOV_Q         x5, VADDR_START + TEXT_OFFSET
-    __CREATE_PGD    x0, x5, x3, x6
-    adrp            x6, _end_permenant_image
-    adrp            x3, _start
-    sub             x6, x6, x3
-    add             x6, x6, x5
-    __BLOCK_MAP     x0, x7, x3, x5, x6
-    dmb             sy
-    tlbi            vmalle1
-    dsb             sy
+    __ZERO_PAGE_TABLE   page_idmap_dir, end_page_idmap_dir
+    __ZERO_PAGE_TABLE   page_global_dir, end_page_global_dir
+    mov                 x7, NORMAL_INIT_MMU_FLAGS
+    adrp                x0, page_idmap_dir
+    adrp                x3, _idmap_text_start
+    __CREATE_PGD        x0, x3, x5, x6
+    mov                 x5, x3
+    __ADR_L             x6, _idmap_text_end
+    __BLOCK_MAP         x0, x7, x3, x5, x6
+    adrp                x0, page_global_dir
+    __MOV_Q             x5, VADDR_START + TEXT_OFFSET
+    __CREATE_PGD        x0, x5, x3, x6
+    adrp                x6, _end_permenant_image
+    adrp                x3, _start
+    sub                 x6, x6, x3
+    add                 x6, x6, x5
+    __BLOCK_MAP         x0, x7, x3, x5, x6
+    dmb                 sy
+    tlbi                vmalle1
+    dsb                 sy
     isb
     ret
 
@@ -165,7 +159,7 @@ __turnon_mmu:
     dsb     sy
     isb
     mrs     x0, sctlr_el1
-    orr     x0, x0, #1
+    orr     x0, x0, #MMU_M_FLAG 
     msr     sctlr_el1, x0
     dsb     sy
     isb
