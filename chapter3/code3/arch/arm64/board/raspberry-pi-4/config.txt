@@ -1,6 +1,0 @@
-arm_64bit=1
-arm_peri_high=1
-disable_commandline_tags=1
-enable_gic=1
-enable_uart=1
-kernel_old=1

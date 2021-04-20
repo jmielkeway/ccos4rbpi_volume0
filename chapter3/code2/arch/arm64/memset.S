@@ -72,7 +72,7 @@ memset:
     sub     count, count, tmp2
     add     dst, dst, tmp2
 .Laligned:
-#    cbz     A_l, .Lzero_mem
+    cbz     A_l, .Lzero_mem
 .Ltail_maybe_long:
     cmp     count, #64
     b.ge    .Lnot_short
