@@ -43,4 +43,3 @@ __timer_set_compare:
     __MOV_Q         x1, PHYS_TO_VIRT(TIMER_C3)
     __DEV_WRITE_32  w0, x1
     ret
-
