@@ -21,10 +21,9 @@
   ##### [*ARM Page Tables*](chapter3/arm-page-tables.md)
   ##### [*Establishing Boot Tables*](chapter3/boot-tables.md)
   ##### [*Linear Mapping the Entire Physical Address Space*](chapter3/linear-mapping.md)
-  ##### [*Turning On the MMU*](mmu.md)
-#### Chapters[4]: Caches
-  ##### *Preliminary ARM Requirements*
-  ##### *Enabling the Cache*
+  ##### [*Turning On the MMU*](chapter3/mmu.md)
+#### [Chapters[4]: Caches](chapter4/chapter4.md)
+  ##### [*Enabling the Caches*]
 #### Chapters[5]: SMP
   ##### *Synchronization*
   ##### *Spinlocks*
