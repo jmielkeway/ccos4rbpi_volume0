@@ -16,14 +16,12 @@
 #include "board/bare-metal.h"
 #include "board/gic.h"
 
-#define SPID_TIMER3         (0x63)
+#define SPID_TIMER3     (0x63)
 
 #define IRQ_IRQID_SHIFT     (0)
 #define IRQ_CPUID_SHIFT     (10)
-
 #define IRQ_IRQID_MASK      (0x000003FF)
 #define IRQ_CPUID_MASK      (0x00001C00)
-
 #define IRQ_IRQID_VALUE(irq)    ((irq & IRQ_IRQID_MASK) >> IRQ_IRQID_SHIFT)
 #define IRQ_CPUID_VALUE(irq)    ((irq & IRQ_CPUID_MASK) >> IRQ_CPUID_SHIFT)
 
@@ -51,6 +49,7 @@ void handle_irq()
                     break;
                 default:
                     log("Encountered Undefined Interrupt: %x\r\n");
+                    break;
             }
         }
         else {

@@ -17,16 +17,16 @@
 
     .macro __DEV_READ_32, dst, src
         ldr     \dst, [\src]
-        dsb     ld
+        dmb     ld
     .endm
 
     .macro __DEV_WRITE_32, src, dst
-        dsb     st
+        dmb     st
         str     \src, [\dst]
     .endm
 
     .macro __DEV_WRITE_8, src, dst
-        dsb     st
+        dmb     st
         strb    \src, [\dst]
     .endm
 

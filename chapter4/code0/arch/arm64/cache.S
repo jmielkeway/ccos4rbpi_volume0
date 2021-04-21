@@ -38,7 +38,8 @@ __invalidate_dcache_range:
 
 .global __tlbi_vmalle1
 __tlbi_vmalle1:
+    dsb     ishst
     tlbi    vmalle1
-    dsb     sy
+    dsb     ish
     isb
     ret

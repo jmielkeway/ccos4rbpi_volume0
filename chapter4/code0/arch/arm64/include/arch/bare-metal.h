@@ -23,15 +23,19 @@
 #define UL(x)                           (x##UL)
 #endif
 
-#define SET_BIT(pos)        ((UL(1)) << (pos))
-#define INIT_STACK_SIZE     (((UL(1)) << (PAGE_SHIFT)) << 3)
+#define BIT_SET(pos)        ((UL(1)) << (pos))
+#define BIT_NOT_SET(pos)    (0)
+
+#define INIT_STACK_SHIFT    (3)
+#define INIT_STACK_SIZE     (((UL(1)) << (PAGE_SHIFT)) << (INIT_STACK_SHIFT))
 
 #define LINEAR_ADDR_MASK    ((UL(1) << (VA_BITS)) - 1)
 #define VADDR_START         (~(LINEAR_ADDR_MASK))
 #define VIRT_TO_PHYS(virt)  ((virt) & (LINEAR_ADDR_MASK))
 #define PHYS_TO_VIRT(phys)  ((phys) | (VADDR_START))
 
-#define CACHE_I_FLAG                SET_BIT(12)
-#define CACHE_C_FLAG                SET_BIT(2)
+#define MMU_M_FLAG          BIT_SET(0)
+#define CACHE_C_FLAG        BIT_SET(2)
+#define CACHE_I_FLAG        BIT_SET(12)
 
 #endif
