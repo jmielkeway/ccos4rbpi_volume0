@@ -23,7 +23,7 @@
   ##### [*Linear Mapping the Entire Physical Address Space*](chapter3/linear-mapping.md)
   ##### [*Turning On the MMU*](chapter3/mmu.md)
 #### [Chapters[4]: Caches](chapter4/chapter4.md)
-  ##### [*Enabling the Caches*]
+  ##### [*Enabling the Caches*](chapter4/caches.md)
 #### Chapters[5]: SMP
   ##### *Synchronization*
   ##### *Spinlocks*
