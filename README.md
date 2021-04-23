@@ -24,11 +24,11 @@
   ##### [*Turning On the MMU*](chapter3/mmu.md)
 #### [Chapters[4]: Caches](chapter4/chapter4.md)
   ##### [*Enabling the Caches*](chapter4/caches.md)
-#### Chapters[5]: SMP
+#### [Chapters[5]: SMP](chapter5/chapter5.md)
   ##### *Synchronization*
+  ##### *The Cantankerous Cache Bug*
   ##### *Spinlocks*
-  ##### *Atomics*
-  ##### *Turning on all CPUs*
+  ##### *Atomics and Ordering*
 #### Chapters[6]: Memory Allocation
   ##### *The Global Memory Map*
   ##### *List Data Structure*
