@@ -16,10 +16,3 @@
 __dsb_sy:
     dsb     sy
     ret
-
-.globl __sev
-__sev:
-    sev
-    dsb sy
-    isb
-    ret
