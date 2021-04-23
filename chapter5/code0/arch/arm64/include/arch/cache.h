@@ -15,7 +15,6 @@
 #ifndef _ARCH_CACHE_H
 #define _ARCH_CACHE_H
 
-void __clean_and_inval_dcache_range(volatile void *va, unsigned long size);
 void __tlbi_vmalle1();
 
 #endif

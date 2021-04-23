@@ -13,12 +13,13 @@
  */
 
 #include "config/config.h"
-#include "arch/asm-functions.h"
 #include "arch/allocate.h"
 #include "arch/bare-metal.h"
-#include "arch/cache.h"
 
 extern volatile unsigned long cpu_spin_pen[];
+
+extern void __dsb_sy();
+extern void __sev();
 
 unsigned long idle_stacks[NUM_CPUS];
 
@@ -31,7 +32,6 @@ void smp_init()
         idle_stacks[i] = PHYS_TO_VIRT(alloc_baby_boot_pages(8) + INIT_STACK_SIZE);
     }
     __dsb_sy();
-    __clean_and_inval_dcache_range(cpu_spin_pen, (sizeof(unsigned long *) * NUM_CPUS));
     __sev();
     while(1) {
         for(num_alive = 0; num_alive < NUM_CPUS; num_alive++) {

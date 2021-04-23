@@ -12,8 +12,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "cake/string.h"
-#include "arch/asm-functions.h"
+#include "arch/bare-metal.h"
 #include "arch/cache.h"
 #include "arch/memory.h"
 #include "arch/page.h"
@@ -21,11 +20,14 @@
 
 #define BABY_BOOT_SIZE  NUM_ENTRIES_PER_TABLE
 
+extern unsigned long page_global_dir[];
+
+extern void __dsb_sy();
 extern struct address_map *addrmap();
+extern void memset(void *x, int c, unsigned long count);
 
 static void linear_map_section(unsigned long start, unsigned long flags);
 
-extern unsigned long page_global_dir[];
 static unsigned long baby_boot_allocator[BABY_BOOT_SIZE];
 static unsigned int baby_boot_pointer = 0;
 

@@ -21,12 +21,13 @@ extern void log_init();
 extern void paging_init();
 extern void smp_init();
 extern void timer_init();
-void init();
+
+static void init();
 
 void cheesecake_main(void)
 {
     unsigned long count = 1;
-    char *version = "0.5.13";
+    char *version = "0.5.0.12";
     init();
     log("Hello, Cheesecake!\r\n");
     IRQ_ENABLE();
@@ -48,7 +49,7 @@ void secondary_main()
     }
 }
 
-void init()
+static void init()
 {
     paging_init();
     log_init();

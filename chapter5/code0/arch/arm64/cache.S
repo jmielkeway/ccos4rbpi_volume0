@@ -12,23 +12,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-.globl __clean_and_inval_dcache_range
-__clean_and_inval_dcache_range:
-    add     x1, x1, x0
-    mrs     x3, ctr_el0
-    ubfm    x3, x3, #16, #19
-    mov     x2, #4
-    lsl     x2, x2, x3
-1:
-    dc      civac, x0
-    add     x0, x0, x2
-    cmp     x0, x1
-    b.lo    1b
-    dsb     sy
-    isb
-    ret
-
-
 .globl __invalidate_dcache_range
 __invalidate_dcache_range:
     add     x1, x1, x0
@@ -58,7 +41,8 @@ __invalidate_dcache_range:
 
 .global __tlbi_vmalle1
 __tlbi_vmalle1:
+    dsb     ishst
     tlbi    vmalle1
-    dsb     sy
+    dsb     ish
     isb
     ret
