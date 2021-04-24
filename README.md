@@ -6,12 +6,12 @@
   ##### [*Resources*](chapter0/resources.md)
   ##### [*Prerequisites*](chapter0/prerequisites.md)
   ##### [*Getting Started*](chapter0/getting-started.md)
-### Parts[1]: Kernel Space
 #### [Chapters[1]: Hello, Cheesecake!](chapter1/chapter1.md)
   ##### [*Hello Cheesecake!*](chapter1/hello-cheesecake.md)
   ##### [*Conventions and Design*](chapter1/conventions-design.md)
   ##### [*Building and Linking*](chapter1/building-linking.md)
   ##### [*Logging*](chapter1/logging.md)
+### Parts[1]: Architecture
 #### [Chapters[2]: Processor Initiliazation and Exceptions](chapter2/chapter2.md)
   ##### [*Setting the Exception Level in the ARM Stub*](chapter2/arm-stub.md)
   ##### [*Exceptions and the ARM Exception Vector Table*](chapter2/exception-vector-table.md)
@@ -25,10 +25,11 @@
 #### [Chapters[4]: Caches](chapter4/chapter4.md)
   ##### [*Enabling the Caches*](chapter4/caches.md)
 #### [Chapters[5]: SMP](chapter5/chapter5.md)
-  ##### *Synchronization*
+  ##### [*Synchronization*](chapter5/synchronization.md)
   ##### *The Cantankerous Cache Bug*
   ##### *Spinlocks*
   ##### *Atomics and Ordering*
+### Parts[2]: Kernel Space
 #### Chapters[6]: Memory Allocation
   ##### *The Global Memory Map*
   ##### *List Data Structure*
@@ -45,7 +46,7 @@
   ##### *Waitqueues*
   ##### *Workqueues*
   ##### *First Kernel Thread*
-### Parts[2]: User Space
+### Parts[3]: User Space
 #### Chapters[9]: Virtual Memory and Fake Partition
   ##### *Building*
   ##### *Create Userspace Page Tables*
