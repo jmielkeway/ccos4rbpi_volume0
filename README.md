@@ -26,7 +26,7 @@
   ##### [*Enabling the Caches*](chapter4/caches.md)
 #### [Chapters[5]: SMP](chapter5/chapter5.md)
   ##### [*Synchronization*](chapter5/synchronization.md)
-  ##### *The Cantankerous Cache Bug*
+  ##### [*The Cantankerous Cache Bug*](chapter5/cache-bug.md)
   ##### *Spinlocks*
   ##### *Atomics and Ordering*
 ### Parts[2]: Kernel Space
