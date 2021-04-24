@@ -17,3 +17,4 @@ __sev:
     sev
     dsb sy
     isb
+    ret
