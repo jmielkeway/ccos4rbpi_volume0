@@ -12,7 +12,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-.global __far
-__far:
-    mrs    x0, far_el1
+.globl __dsb_sy
+__dsb_sy:
+    dsb     sy
     ret
