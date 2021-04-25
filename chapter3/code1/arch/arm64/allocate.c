@@ -32,7 +32,7 @@ static unsigned int baby_boot_pointer = 0;
 unsigned long alloc_baby_boot_pages(unsigned int numpages)
 {
     unsigned long addr = 0;
-    if(baby_boot_pointer + (numpages - 1) < NUM_ENTRIES_PER_TABLE) {
+    if(baby_boot_pointer + (numpages - 1) < BABY_BOOT_SIZE) {
         addr = baby_boot_allocator[baby_boot_pointer];
         baby_boot_pointer += numpages;
     }
