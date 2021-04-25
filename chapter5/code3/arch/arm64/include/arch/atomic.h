@@ -12,6 +12,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef _ARCH_ATOMIC_H
+#define _ARCH_ATOMIC_H
+
 #define ATOMIC_LONG_ANDNOT      __atomic64_andnot
 #define ATOMIC_LONG_FETCH_OR   __atomic64_fetch_or
 #define ATOMIC_LONG_OR          __atomic64_or
@@ -20,3 +23,4 @@ void __atomic64_andnot(volatile unsigned long *bitmap, unsigned long bit);
 int __atomic64_fetch_or(volatile unsigned long *bitmap, unsigned long bit);
 void __atomic64_or(volatile unsigned long *bitmap, unsigned long bit);
 
+#endif
