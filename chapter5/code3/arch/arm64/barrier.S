@@ -16,3 +16,13 @@
 __dsb_sy:
     dsb     sy
     ret
+
+.globl __load_acquire
+__load_acquire:
+    ldar    x0, [x0]
+    ret
+
+.globl __store_release
+__store_release:
+    stlr    x1, [x0]
+    ret
