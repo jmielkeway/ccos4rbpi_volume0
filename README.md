@@ -27,8 +27,8 @@
 #### [Chapters[5]: SMP](chapter5/chapter5.md)
   ##### [*Synchronization*](chapter5/synchronization.md)
   ##### [*The Cantankerous Cache Bug*](chapter5/cache-bug.md)
-  ##### [*Spinlocks*](spinlocks.md)
-  ##### *Atomics and Ordering*
+  ##### [*Spinlocks*](chapter5/spinlocks.md)
+  ##### [*Atomics and Ordering*](chapter5/atomics-ordering.md)
 ### Parts[2]: Kernel Space
 #### Chapters[6]: Memory Allocation
   ##### *The Global Memory Map*
