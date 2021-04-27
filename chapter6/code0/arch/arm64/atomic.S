@@ -18,6 +18,7 @@
  */
 
 __atomic64_fetch_or:
+    prfm 	pstl1strm, [x0]
 1:
     ldxr 	x2, [x0]
     orr 	x3, x2, x1
@@ -28,14 +29,16 @@ __atomic64_fetch_or:
     ret
 
 __atomic64_or:
+    prfm 	pstl1strm, [x0]
 1:
     ldxr 	x2, [x0]
     orr 	x2, x2, x1
     stxr 	w3, x2, [x0]
     cbnz 	w3, 1b
     ret
-		
+
 __atomic64_andnot:
+    prfm 	pstl1strm, [x0]
 1:
     ldxr 	x2, [x0]
     bic 	x2, x2, x1

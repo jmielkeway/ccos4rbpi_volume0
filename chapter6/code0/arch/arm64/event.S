@@ -12,11 +12,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-.globl __dsb_sy
-__dsb_sy:
-    dsb     sy
-    ret
-
 .globl __sev
 __sev:
     sev

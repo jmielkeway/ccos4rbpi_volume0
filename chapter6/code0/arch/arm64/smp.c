@@ -13,12 +13,14 @@
  */
 
 #include "config/config.h"
-#include "arch/asm-functions.h"
 #include "arch/allocate.h"
 #include "arch/bare-metal.h"
 #include "arch/cache.h"
 
 extern volatile unsigned long cpu_spin_pen[];
+
+extern void __dsb_sy();
+extern void __sev();
 
 unsigned long idle_stacks[NUM_CPUS];
 
