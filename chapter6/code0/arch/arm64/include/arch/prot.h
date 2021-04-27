@@ -18,26 +18,24 @@
 #include "arch/bare-metal.h"
 #include "arch/page.h"
 
-#define UNSET_BIT(pos)      (0)
-
-#define PTE_VALID           SET_BIT(0)
-#define PTE_DIRTY           SET_BIT(51)
-#define PTE_WRITE           SET_BIT(55)
-#define PTE_SPECIAL         SET_BIT(56)
-#define PTE_USER            SET_BIT(6)
-#define PTE_RDONLY          SET_BIT(7)
-#define PTE_SHARED          SET_BIT(8) | SET_BIT(9)
-#define PTE_AF              SET_BIT(10)
-#define PTE_NG              SET_BIT(11)
+#define PTE_VALID           BIT_SET(0)
+#define PTE_DIRTY           BIT_SET(51)
+#define PTE_WRITE           BIT_SET(55)
+#define PTE_SPECIAL         BIT_SET(56)
+#define PTE_USER            BIT_SET(6)
+#define PTE_RDONLY          BIT_SET(7)
+#define PTE_SHARED          BIT_SET(8) | BIT_SET(9)
+#define PTE_AF              BIT_SET(10)
+#define PTE_NG              BIT_SET(11)
 #define PTE_DBM             PTE_DIRTY
-#define PTE_CONT            SET_BIT(52)
-#define PTE_PXN             SET_BIT(53)
-#define PTE_UXN             SET_BIT(54)
-#define PTE_TYPE_PAGE       PTE_VALID | SET_BIT(1)
+#define PTE_CONT            BIT_SET(52)
+#define PTE_PXN             BIT_SET(53)
+#define PTE_UXN             BIT_SET(54)
+#define PTE_TYPE_PAGE       PTE_VALID | BIT_SET(1)
 #define PROT_PAGE_DEFUALT   (PTE_TYPE_PAGE | PTE_AF | PTE_SHARED)
 
-#define PMD_TYPE_TABLE      PTE_VALID | SET_BIT(1)
-#define PMD_TYPE_SECT       PTE_VALID | UNSET_BIT(1)
+#define PMD_TYPE_TABLE      PTE_VALID | BIT_SET(1)
+#define PMD_TYPE_SECT       PTE_VALID | BIT_NOT_SET(1)
 #define PMD_SECT_USER       PTE_USER
 #define PMD_SECT_RDONLY     PTE_RDONLY
 #define PMD_SECT_SHARED     PTE_SHARED

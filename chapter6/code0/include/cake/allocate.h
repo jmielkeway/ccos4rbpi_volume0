@@ -17,7 +17,8 @@
 
 #include "cake/list.h"
 
-#define MAX_ORDER   9
+#define GLOBAL_MEMMAP   system_phys_page_dir
+#define MAX_ORDER       (9)
 
 struct page {
     unsigned long allocated: 1;
@@ -29,5 +30,7 @@ struct page {
     struct list pagelist;
     unsigned long refcount;
 };
+
+extern struct page *system_phys_page_dir;
 
 #endif

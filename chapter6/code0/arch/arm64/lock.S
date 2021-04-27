@@ -33,6 +33,7 @@ __irq_save:
 
 .globl __spin_lock
 __spin_lock:
+    prfm	pstl1strm, [x0]
 1:
     ldaxr   x3, [x0]
     mov     x6, #TICKET_VALUE
@@ -52,7 +53,7 @@ __spin_lock:
 
 .globl __spin_unlock
 __spin_unlock:
-    ldr     x1, [x0]
-    add     x1, x1, #1
-    stlr    x1, [x0]
+    ldr     w1, [x0]
+    add     w1, w1, #1
+    stlr    w1, [x0]
     ret

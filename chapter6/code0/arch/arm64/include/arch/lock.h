@@ -18,8 +18,8 @@
 #include "cake/lock.h"
 
 #define SPIN_LOCK               __spin_lock
-#define SPIN_UNLOCK             __spin_unlock
 #define SPIN_LOCK_IRQSAVE       spin_lock_irqsave
+#define SPIN_UNLOCK             __spin_unlock
 #define SPIN_UNLOCK_IRQRESTORE  spin_unlock_irqrestore
 
 void __spin_lock(struct spinlock *lock);

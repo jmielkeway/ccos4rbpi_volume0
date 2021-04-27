@@ -15,23 +15,24 @@
 #include "cake/compiler.h"
 #include "arch/atomic.h"
 
-#define BITS_PER_LONG               (8 * sizeof(unsigned long))
-#define BIT_WORD(bit)               ((bit) / BITS_PER_LONG)
-#define BIT_MASK(bit)               (1UL << ((bit) % BITS_PER_LONG))
+#define BITS_PER_BYTE   (8)
+#define BITS_PER_LONG   (BITS_BER_BYTE * sizeof(unsigned long))
+#define BIT_WORD(bit)   ((bit) / BITS_PER_LONG)
+#define BIT_MASK(bit)   (1UL << ((bit) % BITS_PER_LONG))
 
-void clear_bit(volatile unsigned long *bitmap, unsigned long bit)
+static inline void clear_bit(volatile unsigned long *bitmap, unsigned long bit)
 {
     bitmap += BIT_WORD(bit);
     ATOMIC_LONG_ANDNOT(bitmap, BIT_MASK(bit));
 }
 
-void set_bit(volatile unsigned long *bitmap, unsigned long bit)
+static inline void set_bit(volatile unsigned long *bitmap, unsigned long bit)
 {
     bitmap += BIT_WORD(bit);
     ATOMIC_LONG_OR(bitmap, BIT_MASK(bit));
 }
 
-int test_and_set_bit(volatile unsigned long *bitmap, unsigned long bit)
+static inline int test_and_set_bit(volatile unsigned long *bitmap, unsigned long bit)
 {
     long old;
     unsigned long mask = BIT_MASK(bit);
