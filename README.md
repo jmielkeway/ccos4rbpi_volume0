@@ -30,10 +30,9 @@
   ##### [*Spinlocks*](chapter5/spinlocks.md)
   ##### [*Atomics and Ordering*](chapter5/atomics-ordering.md)
 ### Parts[2]: Kernel Space
-#### Chapters[6]: Memory Allocation
+#### [Chapters[6]: Memory Allocation](chapter6/chapter6.md)
   ##### *The Global Memory Map*
-  ##### *List Data Structure*
-  ##### *Freelists with Buddies*
+  ##### *Binary Buddies*
   ##### *Slab Allocator with Object Caches*
 #### Chapters[7]: Scheduling and Processes
   ##### *Process Struct*
