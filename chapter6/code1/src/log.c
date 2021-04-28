@@ -13,12 +13,13 @@
  */
 
 #include <stdarg.h>
-#include "cake/types.h"
 #include "cake/log.h"
-#include "cake/string.h"
+#include "cake/types.h"
 
 #define BUFFER_SIZE                     (255)
 #define MAX_BUFFER_DATA_FOR_NULL_TERM   (BUFFER_SIZE - 1)
+
+extern void console_init();
 
 struct writebuf {
     u8 pos;
@@ -28,8 +29,7 @@ struct writebuf {
 static void flush(struct writebuf *w);
 static int puthex(unsigned long x, struct writebuf *w);
 static int putstr(char *s, struct writebuf *w);
-
-extern void console_init();
+static void xintos(unsigned long x, char *t);
 
 static struct console *console;
 
@@ -135,4 +135,27 @@ static int putstr(char *s, struct writebuf *w)
 void register_console(struct console *c)
 {
     console = c;
+}
+
+static void xintos(unsigned long x, char *t)
+{
+    int temp_size = 0;
+    char c, temp[16];
+    *(t++) = '0';
+    *(t++) = 'x';
+    do {
+        c = x % 16;
+        if(c < 10) {
+            c = c + 0x30;
+        } else {
+            c = c + 0x37;
+        }
+        temp[temp_size++] = c;
+        x /= 16;
+    } while(x);
+    while(temp_size--) {
+        *(t++) = temp[temp_size];
+    }
+    *(t++) = '\0';
+    return;
 }

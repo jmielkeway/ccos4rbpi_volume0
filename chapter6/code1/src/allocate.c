@@ -13,28 +13,33 @@
  */
 
 #include "cake/allocate.h"
+#include "cake/lock.h"
 #include "cake/list.h"
 #include "cake/log.h"
+#include "arch/lock.h"
 
 #define PAGE_IS_TAIL(page)      ((page->pfn) & ((1 << ((page->current_order) + 1)) - 1))
 #define PAGE_IS_HEAD(page)      (!(PAGE_IS_TAIL(page)))
 #define HEAD_BUDDY_PFN(page)    ((page->pfn) - (1 << (page->current_order)))
 #define TAIL_BUDDY_PFN(page)    ((page->pfn) + (1 << (page->current_order)))
-#define HEAD_BUDDY(page)        (&(system_phys_page_dir[HEAD_BUDDY_PFN(page)]))
-#define TAIL_BUDDY(page)        (&(system_phys_page_dir[TAIL_BUDDY_PFN(page)]))
+#define HEAD_BUDDY(page)        (&(GLOBAL_MEMMAP[HEAD_BUDDY_PFN(page)]))
+#define TAIL_BUDDY(page)        (&(GLOBAL_MEMMAP[TAIL_BUDDY_PFN(page)]))
 #define SHOULD_COALESCE(page, buddy)                        \
     (!(buddy->allocated) &&                                 \
     ((page->current_order) == (buddy->current_order)) &&    \
     ((page->current_order) < (page->original_order))  &&    \
     ((buddy->current_order) < (buddy->original_order)))
 
-extern void arch_populate_allocate_structures(struct page **system_phys_page_dir, 
-    struct list *freelists);
+extern void arch_populate_allocate_structures(struct list *freelists);
 
 void free_pages(struct page *page);
 
+static struct spinlock allocator_lock = {
+    .owner = 0,
+    .ticket = 0
+};
 static struct list freelists[MAX_ORDER + 1];
-static struct page *system_phys_page_dir;
+struct page *system_phys_page_dir;
 
 struct page *alloc_pages(unsigned int order)
 {
@@ -43,6 +48,7 @@ struct page *alloc_pages(unsigned int order)
     struct page *p = 0;
     unsigned long pfn, bpfn;
     unsigned int i = order;
+    SPIN_LOCK(&allocator_lock);
     while(i <= MAX_ORDER) {
         freelist = &(freelists[i]);
         if(!list_empty(freelist)) {
@@ -52,7 +58,9 @@ struct page *alloc_pages(unsigned int order)
         }
         i++;
     }
+    SPIN_UNLOCK(&allocator_lock);
     if(p) {
+        SPIN_LOCK(&allocator_lock);
         while(i > order) {
             --i;
             p->current_order = i;
@@ -60,14 +68,15 @@ struct page *alloc_pages(unsigned int order)
             list_add(freelist, &(p->pagelist));
             pfn = p->pfn;
             bpfn = pfn + (1 << i);
-            buddy = &(system_phys_page_dir[bpfn]);
+            buddy = &(GLOBAL_MEMMAP[bpfn]);
             buddy->valid = 1;
             buddy->original_order = i + 1;
             buddy->current_order = i;
             p = buddy;
         }
+        SPIN_UNLOCK(&allocator_lock);
         for(i = p->pfn; i < (p->pfn + (1 << order)); i++) {
-            s = &(system_phys_page_dir[i]);
+            s = &(GLOBAL_MEMMAP[i]);
             s->allocated = 1;
         }
     }
@@ -82,7 +91,7 @@ void allocate_init()
         freelist->next = freelist;
         freelist->prev = freelist;
     }
-    arch_populate_allocate_structures(&system_phys_page_dir, freelists);
+    arch_populate_allocate_structures(freelists);
 
     log("Full list for order 1:\r\n");
     LIST_FOR_EACH_ENTRY(q, &(freelists[1]), pagelist) {
@@ -108,7 +117,7 @@ void allocate_init()
 
     log("Looking at page directory vars:\r\n");
     for(unsigned long i = p->pfn; i < (p->pfn + (1 << 3)); i++) {
-        s = &(system_phys_page_dir[i]);
+        s = &(GLOBAL_MEMMAP[i]);
         log("Address: %x\r\n", s);
         log("{index: %x; current order: %x; original order: %x;\r\n", 
             s->pfn, s->current_order, s->original_order);
@@ -152,7 +161,7 @@ void allocate_init()
 
     log("Looking at page directory vars:\r\n");
     for(unsigned long i = p->pfn; i < (p->pfn + (1 << 3)); i++) {
-        s = &(system_phys_page_dir[i]);
+        s = &(GLOBAL_MEMMAP[i]);
         log("Address: %x\r\n", s);
         log("{index: %x; current order: %x; original order: %x;\r\n", 
             s->pfn, s->current_order, s->original_order);
@@ -199,7 +208,7 @@ void allocate_init()
 
     log("Looking at page directory vars:\r\n");
     for(unsigned long i = p->pfn; i < (p->pfn + (1 << 3)); i++) {
-        s = &(system_phys_page_dir[i]);
+        s = &(GLOBAL_MEMMAP[i]);
         log("Address: %x\r\n", s);
         log("{index: %x; current order: %x; original order: %x;\r\n", 
             s->pfn, s->current_order, s->original_order);
@@ -232,7 +241,7 @@ void allocate_init()
 
     log("Looking at page directory vars:\r\n");
     for(unsigned long i = p->pfn; i < (p->pfn + (1 << 3)); i++) {
-        s = &(system_phys_page_dir[i]);
+        s = &(GLOBAL_MEMMAP[i]);
         log("Address: %x\r\n", s);
         log("{index: %x; current order: %x; original order: %x;\r\n", 
             s->pfn, s->current_order, s->original_order);
@@ -263,7 +272,7 @@ void allocate_init()
 
     log("Looking at page directory vars:\r\n");
     for(unsigned long i = p->pfn; i < (p->pfn + (1 << 3)); i++) {
-        s = &(system_phys_page_dir[i]);
+        s = &(GLOBAL_MEMMAP[i]);
         log("Address: %x\r\n", s);
         log("{index: %x; current order: %x; original order: %x;\r\n", 
             s->pfn, s->current_order, s->original_order);
@@ -294,7 +303,7 @@ void allocate_init()
 
     log("Looking at page directory vars:\r\n");
     for(unsigned long i = p->pfn; i < (p->pfn + (1 << 3)); i++) {
-        s = &(system_phys_page_dir[i]);
+        s = &(GLOBAL_MEMMAP[i]);
         log("Address: %x\r\n", s);
         log("{index: %x; current order: %x; original order: %x;\r\n", 
             s->pfn, s->current_order, s->original_order);
@@ -309,9 +318,10 @@ void free_pages(struct page *page)
 {
     struct page *buddy, *s;
     for(unsigned long i = page->pfn; i < (page->pfn + (1 << page->current_order)); i++) {
-        s = &(system_phys_page_dir[i]);
+        s = &(GLOBAL_MEMMAP[i]);
         s->allocated = 0;
     }
+    SPIN_LOCK(&allocator_lock);
     while(1) {
         if(PAGE_IS_HEAD(page)) {
             buddy = TAIL_BUDDY(page);
@@ -339,4 +349,5 @@ void free_pages(struct page *page)
         break;
     }
     list_add(&(freelists[page->current_order]), &(page->pagelist));
+    SPIN_UNLOCK(&allocator_lock);
 }

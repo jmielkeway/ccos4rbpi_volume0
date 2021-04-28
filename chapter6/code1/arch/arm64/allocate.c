@@ -15,26 +15,28 @@
 #include "cake/allocate.h"
 #include "cake/list.h"
 #include "cake/log.h"
-#include "cake/string.h"
-#include "arch/asm-functions.h"
+#include "arch/bare-metal.h"
 #include "arch/cache.h"
 #include "arch/memory.h"
 #include "arch/page.h"
 #include "arch/prot.h"
 
-#define BABY_BOOT_SIZE              NUM_ENTRIES_PER_TABLE
+#define BABY_BOOT_SIZE              (NUM_ENTRIES_PER_TABLE)
 #define OVERWRITE_FREEBLOCK_SHIFT   (3)
 #define OVERWRITE_FREEBLOCK_SIZE    ((PAGE_SIZE) << OVERWRITE_FREEBLOCK_SHIFT)
 
+extern unsigned long page_global_dir[];
+
+extern void __dsb_sy();
 extern struct address_map *addrmap();
 extern struct draminit *draminit();
+extern void memset(void *x, int c, unsigned long count);
 
 static void linear_map_section(unsigned long start, unsigned long flags);
 
-extern unsigned long page_global_dir[];
+static struct address_map *address_map;
 static unsigned long baby_boot_allocator[BABY_BOOT_SIZE];
 static unsigned int baby_boot_pointer = 0;
-static struct address_map *address_map;
 
 unsigned long alloc_baby_boot_pages(unsigned int numpages)
 {
@@ -47,9 +49,7 @@ unsigned long alloc_baby_boot_pages(unsigned int numpages)
 }
 
 static void alloc_dram_pages(struct address_region *addrreg, 
-    struct page *system_phys_page_dir,
-    struct list *freelists,
-    unsigned long firstfree)
+    struct list *freelists, unsigned long firstfree)
 {
     unsigned long start = addrreg->start;
     unsigned long end = start + addrreg->size;
@@ -76,9 +76,9 @@ static void alloc_dram_pages(struct address_region *addrreg,
         p.pfn = startframe;
         p.pagelist.next = 0;
         p.pagelist.prev = 0;
-        system_phys_page_dir[startframe] = p;
+        GLOBAL_MEMMAP[startframe] = p;
         if(!allocated_for_page_dir) {
-            fp = &(system_phys_page_dir[startframe].pagelist);
+            fp = &(GLOBAL_MEMMAP[startframe].pagelist);
             list_enqueue(&(freelists[end_shift - PAGE_SHIFT]), fp);
         }
         for(unsigned int i = startframe + 1; i < endframe; i++) {
@@ -86,20 +86,18 @@ static void alloc_dram_pages(struct address_region *addrreg,
             p.current_order = 0;
             p.original_order = 0;
             p.pfn = i;
-            system_phys_page_dir[i] = p;
+            GLOBAL_MEMMAP[i] = p;
         }
         start += (1 << end_shift);
     }
 }
 
-static void alloc_kernel_pages(struct address_region *addrreg,
-    struct page *system_phys_page_dir,
-    struct list *freelists)
+static void alloc_kernel_pages(struct address_region *addrreg, struct list *freelists)
 {
     unsigned long start = addrreg->start;
     unsigned long end = start + addrreg->size;
     if((start & (SECTION_SIZE - 1)) || (end & (SECTION_SIZE - 1))) {
-        log("Unexpected kernel bounds\r\n");        
+        log("Unexpected kernel bounds\r\n");
     }
     while(start < end) {
         struct page p;
@@ -113,21 +111,19 @@ static void alloc_kernel_pages(struct address_region *addrreg,
         p.pfn = startframe;
         p.pagelist.next = 0;
         p.pagelist.prev = 0;
-        system_phys_page_dir[startframe] = p;
+        GLOBAL_MEMMAP[startframe] = p;
         for(unsigned int i = startframe + 1; i < endframe; i++) {
             p.valid = 0;
             p.current_order = 0;
             p.original_order = 0;
             p.pfn = i;
-            system_phys_page_dir[i] = p;
+            GLOBAL_MEMMAP[i] = p;
         }
         start += SECTION_SIZE;
     }
 }
 
-static void alloc_overwrite_pages(struct address_region *addrreg,
-    struct page *system_phys_page_dir,
-    struct list *freelists)
+static void alloc_overwrite_pages(struct address_region *addrreg, struct list *freelists)
 {
     unsigned long start = addrreg->start;
     unsigned long end = start + addrreg->size;
@@ -147,22 +143,21 @@ static void alloc_overwrite_pages(struct address_region *addrreg,
         p.pfn = startframe;
         p.pagelist.next = 0;
         p.pagelist.prev = 0;
-        system_phys_page_dir[startframe] = p;
-        fp = &(system_phys_page_dir[startframe].pagelist);
+        GLOBAL_MEMMAP[startframe] = p;
+        fp = &(GLOBAL_MEMMAP[startframe].pagelist);
         list_enqueue(&(freelists[OVERWRITE_FREEBLOCK_SHIFT]), fp);
         for(unsigned int i = startframe + 1; i < endframe; i++) {
             p.valid = 0;
             p.current_order = 0;
             p.original_order = 0;
             p.pfn = i;
-            system_phys_page_dir[i] = p;
+            GLOBAL_MEMMAP[i] = p;
         }
         start += OVERWRITE_FREEBLOCK_SIZE;
     }
 }
 
 static void alloc_unused_baby_boot_pages(struct address_region *addrreg,
-    struct page *system_phys_page_dir,
     struct list *freelists)
 {
     unsigned long start = addrreg->start;
@@ -181,21 +176,20 @@ static void alloc_unused_baby_boot_pages(struct address_region *addrreg,
         p.pfn = frame;
         p.pagelist.next = 0;
         p.pagelist.prev = 0;
-        system_phys_page_dir[frame] = p;
+        GLOBAL_MEMMAP[frame] = p;
         start += PAGE_SIZE;
     }
     while((start = alloc_baby_boot_pages(1)) != 0) {
         struct page *p;
         unsigned long frame = start >> PAGE_SHIFT;
-        p = &(system_phys_page_dir[frame]);
+        p = &(GLOBAL_MEMMAP[frame]);
         p->allocated = 0;
         p->reserved = 0;
         list_enqueue(&(freelists[0]), &(p->pagelist));
     }
 }
 
-void arch_populate_allocate_structures(struct page **system_phys_page_dir,
-    struct list *freelists)
+void arch_populate_allocate_structures(struct list *freelists)
 {
     unsigned long firstfree, physstart, numpages;
     struct address_region addrreg;
@@ -203,24 +197,24 @@ void arch_populate_allocate_structures(struct page **system_phys_page_dir,
     physstart = d->block;
     numpages = d->end >> PAGE_SHIFT;
     firstfree = physstart + (numpages * sizeof(struct page));
-    *system_phys_page_dir = (struct page *) PHYS_TO_VIRT(physstart);
-    memset(*system_phys_page_dir, 0, firstfree - physstart);
+    GLOBAL_MEMMAP = (struct page *) PHYS_TO_VIRT(physstart);
+    memset(GLOBAL_MEMMAP, 0, firstfree - physstart);
     for(unsigned int i = 0; i < address_map->size; i++) {
         addrreg = address_map->map[i];
         if(addrreg.type == MEM_TYPE_SDRAM) {
             switch(addrreg.flags) {
                 case MEM_FLAGS_CAKE_TEXT:
                 case MEM_FLAGS_CAKE:
-                    alloc_kernel_pages(&addrreg, *system_phys_page_dir, freelists);
+                    alloc_kernel_pages(&addrreg, freelists);
                     break;
                 case MEM_FLAGS_OVERWRITE:
-                    alloc_overwrite_pages(&addrreg, *system_phys_page_dir, freelists);
+                    alloc_overwrite_pages(&addrreg, freelists);
                     break;
                 case MEM_FLAGS_BABY_BOOT:
-                    alloc_unused_baby_boot_pages(&addrreg, *system_phys_page_dir, freelists);
+                    alloc_unused_baby_boot_pages(&addrreg, freelists);
                     break;
                 default:
-                    alloc_dram_pages(&addrreg, *system_phys_page_dir, freelists, firstfree);
+                    alloc_dram_pages(&addrreg, freelists, firstfree);
                     break;
             }
         }
@@ -307,8 +301,8 @@ static void linear_map_section(unsigned long start, unsigned long flags)
 
 void paging_init()
 {
-    address_map = addrmap();
     struct address_region addrreg;
+    address_map = addrmap();
     for(unsigned int i = 0; i < address_map->size; i++) {
         addrreg = address_map->map[i];
         if(addrreg.flags & MEM_FLAGS_BABY_BOOT) {
