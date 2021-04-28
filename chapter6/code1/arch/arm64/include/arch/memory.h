@@ -17,18 +17,20 @@
 
 #include "arch/bare-metal.h"
 
-#define MEM_TYPE_RESERVED               SET_BIT(0)
-#define MEM_TYPE_SDRAM                  SET_BIT(1)
-#define MEM_TYPE_CACHE                  SET_BIT(2)
-#define MEM_TYPE_PERIPHERAL             SET_BIT(3)
-#define MEM_TYPE_LOCAL_PERIPHERAL       SET_BIT(4)
-#define MEM_TYPE_PCIE                   SET_BIT(5)
+#define MEM_TYPE_RESERVED               BIT_SET(0)
+#define MEM_TYPE_SDRAM                  BIT_SET(1)
+#define MEM_TYPE_CACHE                  BIT_SET(2)
+#define MEM_TYPE_PERIPHERAL             BIT_SET(3)
+#define MEM_TYPE_LOCAL_PERIPHERAL       BIT_SET(4)
+#define MEM_TYPE_PCIE                   BIT_SET(5)
 
 #define MEM_FLAGS_NONE                  (0)
-#define MEM_FLAGS_CAKE                  SET_BIT(1)
-#define MEM_FLAGS_CAKE_TEXT             SET_BIT(2)
-#define MEM_FLAGS_OVERWRITE             SET_BIT(3)
-#define MEM_FLAGS_BABY_BOOT             SET_BIT(4)
+#define MEM_FLAGS_CAKE                  BIT_SET(1)
+#define MEM_FLAGS_CAKE_TEXT             BIT_SET(2)
+#define MEM_FLAGS_OVERWRITE             BIT_SET(3)
+#define MEM_FLAGS_BABY_BOOT             BIT_SET(4)
+#define MEM_FLAGS_ENDMAP                BIT_SET(5)
+#define MEM_FLAGS_TEXT                  BIT_SET(6)
 
 struct address_region {
     unsigned long start;

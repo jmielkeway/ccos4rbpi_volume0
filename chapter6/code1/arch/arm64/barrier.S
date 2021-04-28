@@ -12,7 +12,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-.global __far
-__far:
-    mrs    x0, far_el1
+.globl __dsb_sy
+__dsb_sy:
+    dsb     sy
+    ret
+
+.globl __load_acquire
+__load_acquire:
+    ldar    x0, [x0]
+    ret
+
+.globl __store_release
+__store_release:
+    stlr    x1, [x0]
     ret
