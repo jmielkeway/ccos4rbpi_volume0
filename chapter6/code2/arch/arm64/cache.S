@@ -28,7 +28,6 @@ __clean_and_inval_dcache_range:
     isb
     ret
 
-
 .globl __invalidate_dcache_range
 __invalidate_dcache_range:
     add     x1, x1, x0
@@ -58,7 +57,8 @@ __invalidate_dcache_range:
 
 .global __tlbi_vmalle1
 __tlbi_vmalle1:
+    dsb     ishst
     tlbi    vmalle1
-    dsb     sy
+    dsb     ish
     isb
     ret

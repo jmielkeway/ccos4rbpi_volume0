@@ -18,6 +18,7 @@
 #include "config/config.h"
 #include "cake/list.h"
 #include "cake/lock.h"
+#include "arch/page.h"
 
 #define MAX_ORDER                       (9)
 #define MIN_SIZE_CACHE_ORDER            (5)
@@ -26,6 +27,10 @@
 #define DEFAULT_SIZE_CACHE_BATCHSIZE    (64)
 #define NUM_SIZE_CACHES                 (16)
 #define ONSLAB_DESCRIPTOR_SIZE          (512)
+
+#define GLOBAL_MEMMAP                   system_phys_page_dir
+#define PAGE_TO_PTR(page)               PFN_TO_PTR((page->pfn))
+#define PTR_TO_PAGE(ptr)                GLOBAL_MEMMAP[PTR_TO_PFN((ptr))]
 
 struct page {
     unsigned long allocated: 1;
@@ -40,6 +45,7 @@ struct page {
             struct slab *slab;
             struct cache *cache;
         };
+
     };
     unsigned long refcount;
 };
@@ -73,7 +79,9 @@ struct cache {
     struct list slabsfree;
 };
 
-void *alloc_cache_obj(struct cache *cache);
+extern struct page *system_phys_page_dir;
+
+void *alloc_obj(struct cache *cache);
 struct page *alloc_pages(unsigned int order);
 void *cake_alloc(unsigned long size);
 void cake_free(void *obj);

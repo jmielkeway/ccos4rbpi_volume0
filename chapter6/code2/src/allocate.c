@@ -13,9 +13,9 @@
  */
 
 #include "cake/allocate.h"
+#include "cake/lock.h"
 #include "cake/list.h"
 #include "cake/log.h"
-#include "cake/string.h"
 #include "arch/lock.h"
 #include "arch/page.h"
 #include "arch/smp.h"
@@ -24,27 +24,21 @@
 #define PAGE_IS_HEAD(page)      (!(PAGE_IS_TAIL(page)))
 #define HEAD_BUDDY_PFN(page)    ((page->pfn) - (1 << (page->current_order)))
 #define TAIL_BUDDY_PFN(page)    ((page->pfn) + (1 << (page->current_order)))
-#define HEAD_BUDDY(page)        (&(system_phys_page_dir[HEAD_BUDDY_PFN(page)]))
-#define TAIL_BUDDY(page)        (&(system_phys_page_dir[TAIL_BUDDY_PFN(page)]))
+#define HEAD_BUDDY(page)        (&(GLOBAL_MEMMAP[HEAD_BUDDY_PFN(page)]))
+#define TAIL_BUDDY(page)        (&(GLOBAL_MEMMAP[TAIL_BUDDY_PFN(page)]))
 #define SHOULD_COALESCE(page, buddy)                        \
     (!(buddy->allocated) &&                                 \
     ((page->current_order) == (buddy->current_order)) &&    \
     ((page->current_order) < (page->original_order))  &&    \
     ((buddy->current_order) < (buddy->original_order)))
 
-#define LOG2(num)           ((unsigned) (8 * sizeof (unsigned long long) - \
-    __builtin_clzll((num)) - 1))
-#define LOG2_SAFE(num)      num == 0 ? 0 : LOG2(num)
-#define PAGE_TO_PTR(page)   PFN_TO_PTR((page->pfn))
-#define PTR_TO_PAGE(ptr)    system_phys_page_dir[PTR_TO_PFN((ptr))]
-
 #define CPUCACHE_DATA(cache) ((void **) (((struct cpucache *) (cache)) + 1))
 #define SLAB_FREE_STACK(slab) ((unsigned int *) (((struct slab *) (slab)) + 1))
 #define OBJ_CACHE(ptr) (&(PTR_TO_PAGE(ptr)))->cache
 #define OBJ_SLAB(ptr) (&(PTR_TO_PAGE(ptr)))->slab
 
-extern void arch_populate_allocate_structures(struct page **system_phys_page_dir, 
-    struct list *freelists);
+extern void arch_populate_allocate_structures(struct list *freelists);
+extern void memset(void *dest, int c, unsigned long count);
 
 static struct cpucache **alloc_cpucaches();
 static unsigned int cake_alloc_index(unsigned long size);
@@ -55,9 +49,10 @@ static unsigned int resize_batch(unsigned long numpages, unsigned long objsize);
 static void setup_cache_cache();
 static void setup_size_caches();
 
-static struct list freelists[MAX_ORDER + 1];
-static struct page *system_phys_page_dir;
-static struct cache sizecaches[NUM_SIZE_CACHES];
+static struct spinlock allocator_lock = {
+    .owner = 0,
+    .ticket = 0
+};
 static struct cache cache_cache = {
     .name = {'c', 'a', 'c', 'h', 'e', '\0'},
     .objsize = sizeof(struct cache),
@@ -85,6 +80,14 @@ static struct list cachelist = {
     .prev = &cachelist,
     .next = &cachelist
 };
+static struct list freelists[MAX_ORDER + 1];
+static struct cache sizecaches[NUM_SIZE_CACHES];
+struct page *system_phys_page_dir;
+
+static inline void strcpy(char *dst, char *src)
+{
+    while((*dst++ = *src++));
+}
 
 struct cache *alloc_cache(char *name, unsigned long objsize)
 {
@@ -92,7 +95,7 @@ struct cache *alloc_cache(char *name, unsigned long objsize)
     unsigned int lgrm, numpages, batchsize;
     struct cpucache **ref;
     struct list *li;
-    struct cache *cache = alloc_cache_obj(&cache_cache);
+    struct cache *cache = alloc_obj(&cache_cache);
     memset(cache, 0, sizeof(*cache));
     batchsize = 64;
     ref = alloc_cpucaches();
@@ -121,78 +124,7 @@ struct cache *alloc_cache(char *name, unsigned long objsize)
     return cache;
 }
 
-void *alloc_cache_obj(struct cache *cache)
-{
-    struct cpucache *cpucache;
-    unsigned long cpuid = SMP_ID();
-    cpucache = cache->cpucaches[cpuid];
-    if(!(cpucache->free)) {
-        SPIN_LOCK(&(cache->lock));
-        fill_cpucache(cache, cpucache);
-        SPIN_UNLOCK(&(cache->lock));
-    }
-    return CPUCACHE_DATA(cpucache)[--cpucache->free];
-}
-
-static struct cpucache **alloc_cpucaches()
-{
-    log("Allocating CPU caches...\r\n");
-    struct cpucache *cpucache;
-    unsigned int cpucache_capacity = CPUCACHE_CAPACITY + 1;
-    unsigned long reference_size = NUM_CPUS * sizeof(struct cpucache *);
-    unsigned long per_cpu_allocation = cpucache_capacity * sizeof(struct cpucache);
-    struct cpucache **cpucaches = cake_alloc(reference_size);
-    memset(cpucaches, 0, reference_size);
-    for(unsigned int i = 0; i < NUM_CPUS; i++) {
-        cpucache = cake_alloc(per_cpu_allocation);
-        memset(cpucache, 0, per_cpu_allocation);
-        cpucache->free = 0;
-        cpucache->capacity = CPUCACHE_CAPACITY;
-        cpucaches[i] = cpucache;
-        log("Allocated cpucache object at address %x\r\n", cpucache);
-    }
-    return cpucaches;
-}
-
-struct page *alloc_pages(unsigned int order)
-{
-    struct list *freelist;
-    struct page *buddy, *s;
-    struct page *p = 0;
-    unsigned long pfn, bpfn;
-    unsigned int i = order;
-    while(i <= MAX_ORDER) {
-        freelist = &(freelists[i]);
-        if(!list_empty(freelist)) {
-            p = LIST_FIRST_ENTRY(freelist, struct page, pagelist);
-            list_delete(&(p->pagelist));
-            break;
-        }
-        i++;
-    }
-    if(p) {
-        while(i > order) {
-            --i;
-            p->current_order = i;
-            freelist = &(freelists[i]);
-            list_add(freelist, &(p->pagelist));
-            pfn = p->pfn;
-            bpfn = pfn + (1 << i);
-            buddy = &(system_phys_page_dir[bpfn]);
-            buddy->valid = 1;
-            buddy->original_order = i + 1;
-            buddy->current_order = i;
-            p = buddy;
-        }
-        for(i = p->pfn; i < (p->pfn + (1 << order)); i++) {
-            s = &(system_phys_page_dir[i]);
-            s->allocated = 1;
-        }
-    }
-    return p;
-}
-
-static void allocate_cache_slab(struct cache *cache)
+static void alloc_cache_slab(struct cache *cache)
 {
     unsigned long slab_overhead = sizeof(struct slab);
     unsigned long free_tracking_size = cache->batchsize * sizeof(unsigned int);
@@ -234,6 +166,82 @@ static void allocate_cache_slab(struct cache *cache)
     log("Address of stuff: %x\r\n", slab->block);
 }
 
+
+static struct cpucache **alloc_cpucaches()
+{
+    log("Allocating CPU caches...\r\n");
+    struct cpucache *cpucache;
+    unsigned int cpucache_capacity = CPUCACHE_CAPACITY + 1;
+    unsigned long reference_size = NUM_CPUS * sizeof(struct cpucache *);
+    unsigned long per_cpu_allocation = cpucache_capacity * sizeof(struct cpucache);
+    struct cpucache **cpucaches = cake_alloc(reference_size);
+    memset(cpucaches, 0, reference_size);
+    for(unsigned int i = 0; i < NUM_CPUS; i++) {
+        cpucache = cake_alloc(per_cpu_allocation);
+        memset(cpucache, 0, per_cpu_allocation);
+        cpucache->free = 0;
+        cpucache->capacity = CPUCACHE_CAPACITY;
+        cpucaches[i] = cpucache;
+        log("Allocated cpucache object at address %x\r\n", cpucache);
+    }
+    return cpucaches;
+}
+
+void *alloc_obj(struct cache *cache)
+{
+    struct cpucache *cpucache;
+    unsigned long cpuid = SMP_ID();
+    cpucache = cache->cpucaches[cpuid];
+    if(!(cpucache->free)) {
+        SPIN_LOCK(&(cache->lock));
+        fill_cpucache(cache, cpucache);
+        SPIN_UNLOCK(&(cache->lock));
+    }
+    return CPUCACHE_DATA(cpucache)[--cpucache->free];
+}
+
+struct page *alloc_pages(unsigned int order)
+{
+    struct list *freelist;
+    struct page *buddy, *s;
+    struct page *p = 0;
+    unsigned long pfn, bpfn;
+    unsigned int i = order;
+    SPIN_LOCK(&allocator_lock);
+    while(i <= MAX_ORDER) {
+        freelist = &(freelists[i]);
+        if(!list_empty(freelist)) {
+            p = LIST_FIRST_ENTRY(freelist, struct page, pagelist);
+            list_delete(&(p->pagelist));
+            break;
+        }
+        i++;
+    }
+    SPIN_UNLOCK(&allocator_lock);
+    if(p) {
+        SPIN_LOCK(&allocator_lock);
+        while(i > order) {
+            --i;
+            p->current_order = i;
+            freelist = &(freelists[i]);
+            list_add(freelist, &(p->pagelist));
+            pfn = p->pfn;
+            bpfn = pfn + (1 << i);
+            buddy = &(GLOBAL_MEMMAP[bpfn]);
+            buddy->valid = 1;
+            buddy->original_order = i + 1;
+            buddy->current_order = i;
+            p = buddy;
+        }
+        SPIN_UNLOCK(&allocator_lock);
+        for(i = p->pfn; i < (p->pfn + (1 << order)); i++) {
+            s = &(GLOBAL_MEMMAP[i]);
+            s->allocated = 1;
+        }
+    }
+    return p;
+}
+
 void allocate_init()
 {
     unsigned int count = 32;
@@ -243,7 +251,7 @@ void allocate_init()
         freelist->next = freelist;
         freelist->prev = freelist;
     }
-    arch_populate_allocate_structures(&system_phys_page_dir, freelists);
+    arch_populate_allocate_structures(freelists);
     setup_size_caches();
     setup_cache_cache();
     for(int i = 0; i < count; i++) {
@@ -263,10 +271,10 @@ void allocate_init()
 void *cake_alloc(unsigned long size)
 {
     struct cache *sizecache;
-    unsigned int index; 
+    unsigned int index;
     index = cake_alloc_index(size);
     sizecache = &(sizecaches[index]);
-    return alloc_cache_obj(sizecache);
+    return alloc_obj(sizecache);
 }
 
 static unsigned int cake_alloc_index(unsigned long size)
@@ -343,7 +351,7 @@ static void fill_cpucache(struct cache *cache, struct cpucache *cpucache)
 {
     while(cache->freecount < CPUCACHE_FILL_SIZE) {
         log("Need to allocate a new cache slab...\r\n");
-        allocate_cache_slab(cache);
+        alloc_cache_slab(cache);
         log("Free slab objects now = %x\r\n", cache->freecount);
     }
     while(cpucache->free < CPUCACHE_FILL_SIZE) {
@@ -379,9 +387,10 @@ void free_pages(struct page *page)
 {
     struct page *buddy, *s;
     for(unsigned long i = page->pfn; i < (page->pfn + (1 << page->current_order)); i++) {
-        s = &(system_phys_page_dir[i]);
+        s = &(GLOBAL_MEMMAP[i]);
         s->allocated = 0;
     }
+    SPIN_LOCK(&allocator_lock);
     while(1) {
         if(PAGE_IS_HEAD(page)) {
             buddy = TAIL_BUDDY(page);
@@ -409,6 +418,7 @@ void free_pages(struct page *page)
         break;
     }
     list_add(&(freelists[page->current_order]), &(page->pagelist));
+    SPIN_UNLOCK(&allocator_lock);
 }
 
 static void *next_free_obj(struct cache *cache)
@@ -535,8 +545,8 @@ static void setup_size_caches()
         for(unsigned int j = 0; j < new->free; j++) {
             log("Replacing old with new...\r\n");
             log(
-                "Replacing addr %x with addr %x\r\n", 
-                &(CPUCACHE_DATA(old)[j]), 
+                "Replacing addr %x with addr %x\r\n",
+                &(CPUCACHE_DATA(old)[j]),
                 &(CPUCACHE_DATA(new)[j])
             );
             CPUCACHE_DATA(new)[j] = CPUCACHE_DATA(old)[j];

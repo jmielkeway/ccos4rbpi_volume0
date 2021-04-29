@@ -18,9 +18,6 @@
 #include "config/config.h"
 #include "arch/bare-metal.h"
 
-#define BIT_SET(n)                  SET_BIT(n)
-#define BIT_CLEAR(n)                (0)
-
 #define PAGE_TABLE_LEVELS           (4)
 #define TABLE_SHIFT                 (9)
 #define PMD_SHIFT                   (PAGE_SHIFT + (1 * TABLE_SHIFT))
@@ -70,17 +67,17 @@
 #define TCR_T1SZ_SHIFT              (16)
 
 #define TCR_T0SZ                    (((UL(64)) - (VA_BITS)) << (TCR_T0SZ_SHIFT))
-#define TCR_IRGN0                   BIT_CLEAR(9) | BIT_SET(8)
-#define TCR_ORGN0                   BIT_CLEAR(11) | BIT_SET(10)
+#define TCR_IRGN0                   BIT_NOT_SET(9) | BIT_SET(8)
+#define TCR_ORGN0                   BIT_NOT_SET(11) | BIT_SET(10)
 #define TCR_SH0                     BIT_SET(13) | BIT_SET(12)
-#define TCR_TG0                     BIT_CLEAR(15) | BIT_CLEAR(14)
+#define TCR_TG0                     BIT_NOT_SET(15) | BIT_NOT_SET(14)
 #define TCR_T1SZ                    (((UL(64)) - (VA_BITS)) << (TCR_T1SZ_SHIFT))
 #define TCR_A1                      BIT_SET(22)
-#define TCR_IRGN1                   BIT_CLEAR(25) | BIT_SET(24)
-#define TCR_ORGN1                   BIT_CLEAR(27) | BIT_SET(26)
+#define TCR_IRGN1                   BIT_NOT_SET(25) | BIT_SET(24)
+#define TCR_ORGN1                   BIT_NOT_SET(27) | BIT_SET(26)
 #define TCR_SH1                     BIT_SET(29) | BIT_SET(28)
-#define TCR_TG1                     BIT_SET(31) | BIT_CLEAR(30)
-#define TCR_IPS_48BIT               BIT_SET(34) | BIT_CLEAR(33) | BIT_SET(32)
+#define TCR_TG1                     BIT_SET(31) | BIT_NOT_SET(30)
+#define TCR_IPS_48BIT               BIT_SET(34) | BIT_NOT_SET(33) | BIT_SET(32)
 #define TCR_AS                      BIT_SET(36)
 
 #define TCR_INIT_CONFIG             TCR_T0SZ | \
