@@ -31,7 +31,7 @@
   ##### [*Atomics and Ordering*](chapter5/atomics-ordering.md)
 ### Parts[2]: Kernel Space
 #### [Chapters[6]: Memory Allocation](chapter6/chapter6.md)
-  ##### *The Global Memory Map*
+  ##### [*The Global Memory Map*](chapter6/global-memmap.md)
   ##### *Binary Buddies*
   ##### *Slab Allocator with Object Caches*
 #### Chapters[7]: Scheduling and Processes
