@@ -39,8 +39,6 @@
 #define SYNC_INSTRUCTION_ABORT_SAME_100001  (0b100001)
 #define SYNC_DATA_ABORT_SAME_100101         (0b100101)
 
-extern unsigned long __far();
-
 static char *errorcodes[] = {
     "SYNC_UNKNOWN_REASON_000000",
     "SYNC_TRAPPED_WFI_OR_WFE_000001",
@@ -175,11 +173,10 @@ char *faultstatus[] = {
     "RESERVED_111111"
 };
 
-void handle_sync_el1(unsigned long esr)
+void handle_sync(unsigned long esr, unsigned long far)
 {
     char *abort_fault_status;
     unsigned long errorcode, iss, fsc;
-    unsigned long far;
     errorcode = ESR_EC_VALUE(esr);
     iss = ESR_ISS_VALUE(esr);
     char *err_message = errorcodes[errorcode];
@@ -188,14 +185,12 @@ void handle_sync_el1(unsigned long esr)
         case SYNC_INSTRUCTION_ABORT_SAME_100001:
             fsc = INSTRUCTION_ABORT_IFSC_VALUE(iss);
             abort_fault_status = faultstatus[fsc];
-            far = __far();
             log("%s\r\n", abort_fault_status);
             log("Fault Address Register: %x\r\n", far);
             break;
         case SYNC_DATA_ABORT_SAME_100101:
             fsc = DATA_ABORT_DFSC_VALUE(iss);
             abort_fault_status = faultstatus[fsc];
-            far = __far();
             log("%s\r\n", abort_fault_status);
             log("Fault Address Register: %x\r\n", far);
             break;

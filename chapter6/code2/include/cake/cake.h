@@ -15,6 +15,10 @@
 #ifndef _CAKE_CAKE_H
 #define _CAKE_CAKE_H
 
+#define LOG2(num)           ((unsigned) (8 * sizeof (unsigned long long) - \
+    __builtin_clzll((num)) - 1))
+#define LOG2_SAFE(num)      num == 0 ? 0 : LOG2(num)
+
 #define OFFSETOF(type, member)    __builtin_offsetof(type, member)
 
 #define CONTAINER_OF(ptr, type, member) ({          \
