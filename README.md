@@ -35,11 +35,8 @@
   ##### [*Binary Buddies*](chapter6/binary-buddies.md)
   ##### *Slab Allocator with Object Caches*
 #### Chapters[7]: Scheduling and Processes
-  ##### *Process Struct*
-  ##### *Bitmaps*
-  ##### *Runqueues*
-  ##### *Context Switching*
-  ##### *Scheduling Algorithm*
+  ##### *Processes and PIDs*
+  ##### *Scheduling with Runqueues*
   ##### *What the Fork!?*
 #### Chapters[8]: Working and Waiting
   ##### *Waitqueues*
@@ -47,23 +44,22 @@
   ##### *First Kernel Thread*
 ### Parts[3]: User Space
 #### Chapters[9]: Virtual Memory and Fake Partition
-  ##### *Building*
-  ##### *Create Userspace Page Tables*
-  ##### *Copy Page Tables*
-  ##### *Copy-on-write and the Page Fault Handler*
+  ##### *Userspace Page Tables*
+  ##### *The Page Fault Handler*
+  ##### *Building Userspace Programs*
   ##### *Moving to Userspace*
 #### Chapters[10]: The TTY and File Abstraction
-  ##### *Line Discipline*
   ##### *Low Level Driver*
-  ##### *Reading*
-  ##### *Writing*
+  ##### *Line Discipline*
+  ##### *Writing and Reading*
   ##### *Super Simple Cat Program*
-#### Chapters[11]: All The System Calls
-  ##### *Read and Write*
-  ##### *Fork and Execve and Exit*
-  ##### *Getpid and Kill and Waitpid*
-  ##### *Sbrk*
+#### Chapters[11]: Signals
+  ##### *Killing*
+  ##### *Waiting*
+  ##### *Signaling*
 #### Chapters[12]: The Shell
   ##### *The Shell*
   ##### *Builtins*
   ##### *Utilities*
+#### Chapters[13]: Bonus
+  #### *Raspberry Pi 3 Support*
