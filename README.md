@@ -32,7 +32,7 @@
 ### Parts[2]: Kernel Space
 #### [Chapters[6]: Memory Allocation](chapter6/chapter6.md)
   ##### [*The Global Memory Map*](chapter6/global-memmap.md)
-  ##### *Binary Buddies*
+  ##### [*Binary Buddies*](chapter6/binary-buddies.md)
   ##### *Slab Allocator with Object Caches*
 #### Chapters[7]: Scheduling and Processes
   ##### *Process Struct*
