@@ -190,7 +190,7 @@ nomem:
 static struct memmap *duplicate_memmap(struct memmap *old, struct process *p)
 {
     struct memmap *new;
-    struct virtualmem *old_vm, *dup_vm;
+    struct virtualmem *old_vm, *new_vm, *dup_vm;
     struct page *pgd;
     new = alloc_obj(memmap_cache);
     if(!new) {
@@ -207,8 +207,10 @@ static struct memmap *duplicate_memmap(struct memmap *old, struct process *p)
     new->lock.ticket = 0;
     new->pgd = PAGE_TO_PTR(pgd);   
     memset(new->pgd, 0, PAGE_SIZE);
+    new->vmems.prev = &(new->vmems);
+    new->vmems.next = &(new->vmems);
     init_mem_context(new);
-    LIST_FOR_EACH_ENTRY(old_vm, &(new->vmems), vmlist) {
+    LIST_FOR_EACH_ENTRY(old_vm, &(old->vmems), vmlist) {
         dup_vm = copy_virtualmem(old_vm);
         if(!dup_vm) {
             goto freevirtualmems;
@@ -218,10 +220,8 @@ static struct memmap *duplicate_memmap(struct memmap *old, struct process *p)
     }
     return new;
 freevirtualmems:
-    LIST_FOR_EACH_ENTRY(dup_vm, &(new->vmems), vmlist) {
-        if(dup_vm->mm == new) {
-            cake_free(dup_vm);
-        }
+    LIST_FOR_EACH_ENTRY_SAFE(dup_vm, new_vm, &(new->vmems), vmlist) {
+        cake_free(dup_vm);
     }
 freememmap:
     cake_free(new);
@@ -234,4 +234,9 @@ void fork_init()
     memmap_cache = alloc_cache("memmap", sizeof(struct memmap));
     process_cache = alloc_cache("process", sizeof(struct process));
     virtualmem_cache = alloc_cache("virtualmem", sizeof(struct virtualmem));
+}
+
+int sys_clone(unsigned long flags, unsigned long thread_input, unsigned long arg)
+{
+    return do_clone(flags, thread_input, arg);
 }

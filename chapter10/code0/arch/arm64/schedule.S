@@ -50,11 +50,10 @@ __memmap_switch:
     __MOV_Q     x3, LINEAR_ADDR_MASK
     adrp        x2, empty_zero_page
     and         x2, x3, x2
-    msr			ttbr0_el1, x2
+    msr         ttbr0_el1, x2
     isb
-    tlbi        vmalle1
-    bfi 		x0, x1, #48, #16
-    msr 		ttbr0_el1, x0
+    bfi         x0, x1, #48, #16
+    msr         ttbr0_el1, x0
     isb
     ret
 

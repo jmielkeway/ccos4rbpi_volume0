@@ -14,6 +14,18 @@
 
 #include "user/syscall.h"
 
+.globl __clone
+__clone:
+    mov     w8, SYSCALL_CLONE
+    svc     0x0
+    ret
+
+.globl __exec
+__exec:
+    mov     w8, SYSCALL_EXEC
+    svc     0x0
+    ret
+
 .globl __read
 __read:
     mov     w8, SYSCALL_READ

@@ -12,8 +12,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+extern int __clone(unsigned long flags, unsigned long thread_input, unsigned long arg);
+extern int __exec(void *user_function);
 extern long __read(int fd, char *buffer, unsigned long count);
 extern long __write(int fd, char *buffer, unsigned long count);
+
+int libc_strcmp(const char *a, const char *b)
+{
+    while(*a && (*a == *b)) {
+        a++;
+        b++;
+    }
+    return *((const unsigned char *) a) - *((const unsigned char *) b);
+}
+
+unsigned long libc_strlen(const char *s)
+{
+    unsigned long n;
+    while(*s++) {
+        n++;
+    }
+    return n;
+}
+
+int clone(unsigned long flags)
+{
+    return __clone(flags, 0, 0);
+}
+
+int exec(void *user_function)
+{
+    return __exec(user_function);
+}
 
 long read(int fd, char *buffer, unsigned long count)
 {

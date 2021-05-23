@@ -15,11 +15,15 @@
 #include "arch/page.h"
 #include "arch/syscall.h"
 
+extern int sys_clone(unsigned long flags, unsigned long thread_input, unsigned long arg);
+extern int sys_exec(void *user_function);
 extern long sys_read(int fd, char *buffer, unsigned long count);
 extern long sys_write(unsigned int fd, char *user, unsigned long count);
 
 void * sys_call_table [NUM_SYSCALLS] __attribute__((__aligned__(PAGE_SIZE))) = {
     [0 ... NUM_SYSCALLS - 1] = 0,
     [SYSCALL_READ] = sys_read,
-    [SYSCALL_WRITE] = sys_write
+    [SYSCALL_WRITE] = sys_write,
+    [SYSCALL_CLONE] = sys_clone,
+    [SYSCALL_EXEC] = sys_exec
 };
