@@ -205,3 +205,8 @@ nomem:
     return -ENOMEM;
 }
 
+long sys_exec(int (*user_function)(void))
+{
+    return do_exec(user_function, 0);
+}
+

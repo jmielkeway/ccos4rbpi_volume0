@@ -18,6 +18,8 @@
 #define SYSCALL_ZERO_RESERVED   (0)
 #define SYSCALL_READ            (1)
 #define SYSCALL_WRITE           (2)
-#define NUM_SYSCALLS            (3)
+#define SYSCALL_CLONE           (3)
+#define SYSCALL_EXEC            (4)
+#define NUM_SYSCALLS            (5)
 
 #endif
