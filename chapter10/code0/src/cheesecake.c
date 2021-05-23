@@ -47,7 +47,7 @@ void cheesecake_main(void)
     SPIN_LOCK_BOOT(&big_cake_lock);
     init();
     log("Hello, Cheesecake!\r\n");
-    log("Version: 0.10.0.30\r\n");
+    log("Version: 0.10.0.31\r\n");
     SPIN_UNLOCK_BOOT(&big_cake_lock);
     IRQ_ENABLE();
     do_idle();

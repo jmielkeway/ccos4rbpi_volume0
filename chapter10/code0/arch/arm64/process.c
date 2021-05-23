@@ -12,6 +12,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config/config.h"
+#include "cake/bitops.h"
 #include "cake/fork.h"
 #include "cake/process.h"
 #include "arch/process.h"
@@ -32,6 +34,8 @@ int copy_arch_context(unsigned long flags,
         memset(ssr, 0, sizeof(*ssr));
         p->context.x19 = thread_input;
         p->context.x20 = arg;
+        bitmap_zero(p->cpumask, NUM_CPUS);
+        set_bit(p->cpumask, 0);
     }
     else {
         *ssr = *PROCESS_STACK_SAVE_REGISTERS(CURRENT);
@@ -39,6 +43,8 @@ int copy_arch_context(unsigned long flags,
         if(arg) {
             ssr->sp = arg;
         }
+        bitmap_fill(p->cpumask, NUM_CPUS);
+        clear_bit(p->cpumask, 0);
     }
     p->context.pc = (unsigned long) __ret_from_fork;
     p->context.sp = (unsigned long) ssr;
