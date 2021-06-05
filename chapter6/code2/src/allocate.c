@@ -13,6 +13,7 @@
  */
 
 #include "cake/allocate.h"
+#include "cake/error.h"
 #include "cake/lock.h"
 #include "cake/list.h"
 #include "cake/log.h"
@@ -42,8 +43,8 @@ extern void memset(void *dest, int c, unsigned long count);
 
 static struct cpucache **alloc_cpucaches();
 static unsigned int cake_alloc_index(unsigned long size);
+static long fill_cpucache();
 static void free_object_to_cache_pool();
-static void fill_cpucache();
 static void *next_free_obj(struct cache *cache);
 static unsigned int resize_batch(unsigned long numpages, unsigned long objsize);
 static void setup_cache_cache();
@@ -96,9 +97,15 @@ struct cache *alloc_cache(char *name, unsigned long objsize)
     struct cpucache **ref;
     struct list *li;
     struct cache *cache = alloc_obj(&cache_cache);
+    if(!cache) {
+        goto nomem;
+    }
     memset(cache, 0, sizeof(*cache));
     batchsize = 64;
     ref = alloc_cpucaches();
+    if(!ref) {
+        goto freecache;
+    }
     numpages = (objsize * batchsize) / PAGE_SIZE;
     lgrm = LOG2_SAFE(numpages);
     lgrm = lgrm > MAX_ORDER ?  MAX_ORDER : lgrm;
@@ -122,20 +129,31 @@ struct cache *alloc_cache(char *name, unsigned long objsize)
     li->next = li;
     list_add(&(cachelist), &(cache->cachelist));
     return cache;
+freecache:
+    cake_free(cache);
+nomem:
+    return 0;
 }
 
-static void alloc_cache_slab(struct cache *cache)
+static long alloc_cache_slab(struct cache *cache)
 {
-    unsigned long slab_overhead = sizeof(struct slab);
-    unsigned long free_tracking_size = cache->batchsize * sizeof(unsigned int);
+    unsigned long slab_overhead, free_tracking_size;
     struct page *page;
     struct slab *slab;
     void *memblock;
+    slab_overhead = sizeof(struct slab);
+    free_tracking_size = cache->batchsize * sizeof(unsigned int);
     page = alloc_pages(cache->pageorder);
+    if(!page) {
+        goto nomem;
+    }
     memblock = PAGE_TO_PTR(page);
     log("Creating slab for object of size %x\r\n", cache->objsize);
     if(cache->objsize > ONSLAB_DESCRIPTOR_SIZE) {
         slab = cake_alloc(slab_overhead + free_tracking_size);
+        if(!slab) {
+            goto freepage;
+        }
     }
     else {
         slab = PAGE_TO_PTR(page);
@@ -164,20 +182,32 @@ static void alloc_cache_slab(struct cache *cache)
     log("Address of slab: %x\r\n", slab);
     log("Address of freetracking: %x\r\n", SLAB_FREE_STACK(slab));
     log("Address of stuff: %x\r\n", slab->block);
+    return 0;
+freepage:
+    cake_free(page);
+nomem:
+    return -ENOMEM;
 }
 
 
 static struct cpucache **alloc_cpucaches()
 {
     log("Allocating CPU caches...\r\n");
-    struct cpucache *cpucache;
+    long i;
+    struct cpucache *cpucache, **cpucaches;
     unsigned int cpucache_capacity = CPUCACHE_CAPACITY + 1;
     unsigned long reference_size = NUM_CPUS * sizeof(struct cpucache *);
     unsigned long per_cpu_allocation = cpucache_capacity * sizeof(struct cpucache);
-    struct cpucache **cpucaches = cake_alloc(reference_size);
+    cpucaches = cake_alloc(reference_size);
+    if(!cpucaches) {
+        goto nomem;
+    }
     memset(cpucaches, 0, reference_size);
-    for(unsigned int i = 0; i < NUM_CPUS; i++) {
+    for(i = 0; i < NUM_CPUS; i++) {
         cpucache = cake_alloc(per_cpu_allocation);
+        if(!cpucache) {
+            goto failure;
+        }
         memset(cpucache, 0, per_cpu_allocation);
         cpucache->free = 0;
         cpucache->capacity = CPUCACHE_CAPACITY;
@@ -185,17 +215,31 @@ static struct cpucache **alloc_cpucaches()
         log("Allocated cpucache object at address %x\r\n", cpucache);
     }
     return cpucaches;
+failure:
+    while(i-- > 0) {
+        cpucache = cpucaches[i];
+        if(cpucache) {
+            cake_free(cpucache);
+        }
+    }
+    cake_free(cpucaches);
+nomem:
+    return 0;
 }
 
 void *alloc_obj(struct cache *cache)
 {
+    unsigned long cpuid, err;
     struct cpucache *cpucache;
-    unsigned long cpuid = SMP_ID();
+    cpuid = SMP_ID();
     cpucache = cache->cpucaches[cpuid];
     if(!(cpucache->free)) {
         SPIN_LOCK(&(cache->lock));
-        fill_cpucache(cache, cpucache);
+        err = fill_cpucache(cache, cpucache);
         SPIN_UNLOCK(&(cache->lock));
+        if(err) {
+            return 0;
+        }
     }
     return CPUCACHE_DATA(cpucache)[--cpucache->free];
 }
@@ -273,6 +317,9 @@ void *cake_alloc(unsigned long size)
     struct cache *sizecache;
     unsigned int index;
     index = cake_alloc_index(size);
+    if(index < 0) {
+        return 0;
+    }
     sizecache = &(sizecaches[index]);
     return alloc_obj(sizecache);
 }
@@ -332,9 +379,11 @@ static unsigned int cake_alloc_index(unsigned long size)
 
 void cake_free(void *obj)
 {
+    unsigned long cpuid;
     struct cpucache *cpucache;
-    struct cache *cache = OBJ_CACHE(obj);
-    unsigned long cpuid = SMP_ID();
+    struct cache *cache;
+    cpuid = SMP_ID();
+    cache = OBJ_CACHE(obj);
     cpucache = cache->cpucaches[cpuid];
     CPUCACHE_DATA(cpucache)[cpucache->free++] = obj;
     log("Freed object: %x\r\n", obj);
@@ -347,11 +396,13 @@ void cake_free(void *obj)
     }
 }
 
-static void fill_cpucache(struct cache *cache, struct cpucache *cpucache)
+static long fill_cpucache(struct cache *cache, struct cpucache *cpucache)
 {
     while(cache->freecount < CPUCACHE_FILL_SIZE) {
         log("Need to allocate a new cache slab...\r\n");
-        alloc_cache_slab(cache);
+        if(alloc_cache_slab(cache)) {
+            return -ENOMEM;
+        }
         log("Free slab objects now = %x\r\n", cache->freecount);
     }
     while(cpucache->free < CPUCACHE_FILL_SIZE) {
@@ -362,6 +413,7 @@ static void fill_cpucache(struct cache *cache, struct cpucache *cpucache)
             &(CPUCACHE_DATA(cpucache)[cpucache->free - 1])
         );
     }
+    return 0;
 }
 
 static void free_object_to_cache_pool(struct cache *cache, struct cpucache *cpucache)
