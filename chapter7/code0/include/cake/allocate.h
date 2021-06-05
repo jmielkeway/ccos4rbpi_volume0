@@ -81,6 +81,7 @@ struct cache {
 
 extern struct page *system_phys_page_dir;
 
+struct cache *alloc_cache(char *name, unsigned long objsize);
 void *alloc_obj(struct cache *cache);
 struct page *alloc_pages(unsigned int order);
 void *cake_alloc(unsigned long size);
