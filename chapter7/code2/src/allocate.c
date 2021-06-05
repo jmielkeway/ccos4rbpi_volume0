@@ -16,6 +16,7 @@
 #include "cake/error.h"
 #include "cake/lock.h"
 #include "cake/list.h"
+#include "cake/schedule.h"
 #include "arch/lock.h"
 #include "arch/page.h"
 #include "arch/smp.h"
@@ -42,8 +43,8 @@ extern void memset(void *dest, int c, unsigned long count);
 
 static struct cpucache **alloc_cpucaches();
 static unsigned int cake_alloc_index(unsigned long size);
-static void free_object_to_cache_pool();
 static long fill_cpucache();
+static void free_object_to_cache_pool();
 static void *next_free_obj(struct cache *cache);
 static unsigned int resize_batch(unsigned long numpages, unsigned long objsize);
 static void setup_cache_cache();
@@ -135,11 +136,12 @@ nomem:
 
 static long alloc_cache_slab(struct cache *cache)
 {
-    unsigned long slab_overhead = sizeof(struct slab);
-    unsigned long free_tracking_size = cache->batchsize * sizeof(unsigned int);
+    unsigned long slab_overhead, free_tracking_size;
     struct page *page;
     struct slab *slab;
     void *memblock;
+    slab_overhead = sizeof(struct slab);
+    free_tracking_size = cache->batchsize * sizeof(unsigned int);
     page = alloc_pages(cache->pageorder);
     if(!page) {
         goto nomem;
@@ -297,6 +299,9 @@ void *cake_alloc(unsigned long size)
     struct cache *sizecache;
     unsigned int index;
     index = cake_alloc_index(size);
+    if(index < 0) {
+        return 0;
+    }
     sizecache = &(sizecaches[index]);
     return alloc_obj(sizecache);
 }
