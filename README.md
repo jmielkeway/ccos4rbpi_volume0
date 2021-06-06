@@ -35,7 +35,7 @@
   ##### [*Binary Buddies*](chapter6/binary-buddies.md)
   ##### [*Slab Allocator with Object Caches*](chapter6/slab.md)
 #### [Chapters[7]: Scheduling and Processes](chapter7/chapter7.md)
-  ##### *Processes and PIDs*
+  ##### [*Processes and PIDs*](chapter7/process.md)
   ##### *Scheduling with Runqueues*
   ##### *What the Fork!?*
 #### Chapters[8]: Working and Waiting
