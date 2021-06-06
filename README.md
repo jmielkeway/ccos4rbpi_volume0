@@ -33,7 +33,7 @@
 #### [Chapters[6]: Memory Allocation](chapter6/chapter6.md)
   ##### [*The Global Memory Map*](chapter6/global-memmap.md)
   ##### [*Binary Buddies*](chapter6/binary-buddies.md)
-  ##### *Slab Allocator with Object Caches*
+  ##### [*Slab Allocator with Object Caches*](chapter6/slab.md)
 #### Chapters[7]: Scheduling and Processes
   ##### *Processes and PIDs*
   ##### *Scheduling with Runqueues*
