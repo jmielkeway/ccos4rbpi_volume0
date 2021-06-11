@@ -36,7 +36,7 @@
   ##### [*Slab Allocator with Object Caches*](chapter6/slab.md)
 #### [Chapters[7]: Scheduling and Processes](chapter7/chapter7.md)
   ##### [*Processes and PIDs*](chapter7/process.md)
-  ##### *Scheduling with Runqueues*
+  ##### [*Scheduling with Runqueues*](chapter7/scheduler.md)
   ##### *What the Fork!?*
 #### Chapters[8]: Working and Waiting
   ##### *Waitqueues*
