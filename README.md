@@ -38,10 +38,9 @@
   ##### [*Processes and PIDs*](chapter7/process.md)
   ##### [*Scheduling with Runqueues*](chapter7/scheduler.md)
   ##### [*What the Fork!?*](chapter7/fork.md)
-#### Chapters[8]: Working and Waiting
+#### [Chapters[8]: Working and Waiting](chapter8/chapter8.md)
   ##### *Waitqueues*
-  ##### *Workqueues*
-  ##### *First Kernel Thread*
+  ##### *The Kernel Workqueue*
 ### Parts[3]: User Space
 #### Chapters[9]: Virtual Memory and Fake Partition
   ##### *Userspace Page Tables*
