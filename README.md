@@ -39,7 +39,7 @@
   ##### [*Scheduling with Runqueues*](chapter7/scheduler.md)
   ##### [*What the Fork!?*](chapter7/fork.md)
 #### [Chapters[8]: Working and Waiting](chapter8/chapter8.md)
-  ##### *Waitqueues*
+  ##### [*Waitqueues*](chapter8/waitqueues.md)
   ##### *The Kernel Workqueue*
 ### Parts[3]: User Space
 #### Chapters[9]: Virtual Memory and Fake Partition
