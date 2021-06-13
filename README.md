@@ -40,7 +40,7 @@
   ##### [*What the Fork!?*](chapter7/fork.md)
 #### [Chapters[8]: Working and Waiting](chapter8/chapter8.md)
   ##### [*Waitqueues*](chapter8/waitqueues.md)
-  ##### *The Kernel Workqueue*
+  ##### [*The Kernel Workqueue*](chapter8/workqueue.md)
 ### Parts[3]: User Space
 #### Chapters[9]: Virtual Memory and Fake Partition
   ##### *Userspace Page Tables*
