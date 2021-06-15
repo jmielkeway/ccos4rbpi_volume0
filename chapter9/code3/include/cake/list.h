@@ -13,16 +13,16 @@
 #define LIST_NEXT_ENTRY(ptr, member)                            \
         LIST_ENTRY((ptr)->member.next, typeof(*(ptr)), member)
 
-#define LIST_FOR_EACH_ENTRY(loop_ptr, head, member)                     \
-        for (loop_ptr = LIST_FIRST_ENTRY(head, typeof(*loop_ptr), member);   \
-             &loop_ptr->member != (head);                               \
-             loop_ptr = LIST_NEXT_ENTRY(loop_ptr, member))
+#define LIST_FOR_EACH_ENTRY(loop_ptr, head, member) \
+    for (loop_ptr = LIST_FIRST_ENTRY(head, typeof(*loop_ptr), member); \
+         &loop_ptr->member != (head);                                  \
+         loop_ptr = LIST_NEXT_ENTRY(loop_ptr, member))
 
-#define LIST_FOR_EACH_ENTRY_SAFE(pos, n, head, member)          \
-    for (pos = LIST_FIRST_ENTRY(head, typeof(*pos), member),    \
-        n = LIST_NEXT_ENTRY(pos, member);           \
-         &pos->member != (head);                    \
-         pos = n, n = LIST_NEXT_ENTRY(n, member))
+#define LIST_FOR_EACH_ENTRY_SAFE(pos, n, head, member) \
+    for (pos = LIST_FIRST_ENTRY(head, typeof(*pos), member), \
+        n = LIST_NEXT_ENTRY(pos, member);                    \
+        &pos->member != (head);                              \
+        pos = n, n = LIST_NEXT_ENTRY(n, member))
 
 struct list {
     struct list *next;
