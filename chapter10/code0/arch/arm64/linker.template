@@ -1,0 +1,89 @@
+#include "config/config.h"
+#include "arch/bare-metal.h"
+#include "arch/page.h"
+
+#define IDMAP_DIR_SIZE              (PAGE_SIZE * (PAGE_TABLE_LEVELS - 1))
+#define PAGE_GLOBAL_DIR_SIZE        (PAGE_SIZE * (PAGE_TABLE_LEVELS - 1))
+
+OUTPUT_ARCH(aarch64)
+ENTRY(_start)
+SECTIONS
+{
+    . = VADDR_START + TEXT_OFFSET; 
+    .text.boot : {
+        _start = .;
+        *(.text.boot)
+    }
+    .text : { 
+        . = ALIGN(PAGE_SIZE);
+        _idmap_text_start = .;
+        *(.idmap.text)
+        _idmap_text_end = .;
+        *(EXCLUDE_FILE (.build/user/.*) .text)
+    }
+    . = ALIGN(SECTION_SIZE);
+    _kernel_text_end = .;
+    .rodata : { 
+        *(EXCLUDE_FILE (.build/user/.*) .rodata)
+    }
+    .data : { 
+        *(EXCLUDE_FILE (.build/user/.*) .data)
+    }
+    . = ALIGN(PAGE_SIZE);
+    page_global_dir = .;
+    . += PAGE_GLOBAL_DIR_SIZE;
+    end_page_global_dir = .;
+    . = ALIGN(0x8);
+    bss_begin = .;
+    .bss : { 
+        *(EXCLUDE_FILE (.build/user/.*) .bss)
+    }
+    . = ALIGN(PAGE_SIZE);
+    empty_zero_page = .;
+    . += PAGE_SIZE;
+    end_empty_zero_page = .;
+    bss_end = .;
+    . = ALIGN(PAGE_SIZE);
+    init_stack = .;
+    . += INIT_STACK_SIZE;
+    . = ALIGN(SECTION_SIZE);
+    _user_begin = .;
+    _user_text_begin = .;
+    .text.user : {
+        .build/user/.* (.text)
+    }
+    . = ALIGN(SECTION_SIZE);
+    _user_text_end = .;
+    _user_rodata_begin = .;
+    . = ALIGN(PAGE_SIZE);
+    .rodata.user : {
+        .build/user/.* (.rodata)
+    }
+    . = ALIGN(PAGE_SIZE);
+    _user_rodata_end = .;
+    _user_data_begin = .;
+    .data.user : {
+        .build/user/.* (.data)
+    }
+    . = ALIGN(PAGE_SIZE);
+    _user_data_end = .;
+    _user_bss_begin = .;
+    .bss.user : {
+        .build/user/.* (.bss)
+    }
+    . = ALIGN(PAGE_SIZE);
+    _user_bss_end = .;
+    _user_end = .;
+    . = ALIGN(SECTION_SIZE);
+    _end_permenant_image = .;
+    init_overwrite_storage = .;
+    page_idmap_dir = .;
+    . += IDMAP_DIR_SIZE;
+    end_page_idmap_dir = .;
+    . = ALIGN(PAGE_SIZE);
+    cpu_spin_pen = .;
+    . += (0x8 * NUM_CPUS);
+    end_cpu_spin_pen = .;
+    . = ALIGN(SECTION_SIZE);
+    _end = .;
+}
