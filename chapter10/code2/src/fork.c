@@ -110,10 +110,14 @@ static struct process *copy_process(unsigned long flags,
         goto freeprocess;
     }
     if(copy_arch_context(flags, thread_input, arg, p)) {
-        goto freeprocess;
+        goto freememmap;
     }
     p->pid = allocate_pid(p);
     return p;
+freememmap:
+    if(p->memmap) {
+        put_memmap(p->memmap);
+    }
 freeprocess:
     cake_free(p);
 err:

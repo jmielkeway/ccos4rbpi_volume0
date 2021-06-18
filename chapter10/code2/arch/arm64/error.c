@@ -13,9 +13,6 @@
  */
 
 #include "cake/log.h"
-#include "cake/process.h"
-#include "arch/process.h"
-#include "arch/schedule.h"
 
 void log_invalid_exception(unsigned long esr, unsigned long far)
 {

@@ -164,7 +164,7 @@ __el0_svc:
 
 __ret_from_syscall:
     str     x0, [sp, #SSR_X0]
-    b       __ret_to_user 
+    b       __ret_to_user
 
 __el0_ia:
 __el0_da:

@@ -43,11 +43,11 @@ extern struct file *filesystem_file(unsigned int i);
 extern void memset(void *dest, int c, unsigned long count);
 
 static int n_tty_close(struct tty *tty);
-static void n_tty_receive_marked_char(struct tty *tty, char c);
-static void n_tty_receive_normal_char(struct tty *tty, char c);
 static int n_tty_open(struct tty *tty);
 static long n_tty_read(struct tty *tty, char *user, unsigned long n);
 static int n_tty_receive_buf(struct tty *tty, char *user, unsigned int n);
+static void n_tty_receive_marked_char(struct tty *tty, char c);
+static void n_tty_receive_normal_char(struct tty *tty, char c);
 static long n_tty_write(struct tty *tty, char *user, unsigned long n);
 static int tty_close(struct file *file);
 static int tty_open(struct file *file);
@@ -213,6 +213,22 @@ static int n_tty_close(struct tty *tty)
     return 0;
 }
 
+static int n_tty_open(struct tty *tty)
+{
+    unsigned long *marked_chars;
+    struct n_tty_data *ldata;
+    ldata = cake_alloc(sizeof(*ldata));
+    memset(ldata, 0, sizeof(*ldata));
+    marked_chars = ldata->char_map;
+    tty->disc_data = ldata;
+    bitmap_zero(marked_chars, 256);
+    set_bit(marked_chars, TTY_NEWLINE_CHAR(tty));
+    set_bit(marked_chars, TTY_ERASE_CHAR(tty));
+    set_bit(marked_chars, TTY_INTR_CHAR(tty));
+    set_bit(marked_chars, TTY_EOF_CHAR(tty));
+    return 0;
+}
+
 static long n_tty_read(struct tty *tty, char *buffer, unsigned long count) 
 {
     void *copy_from_buf;
@@ -268,22 +284,6 @@ static long n_tty_read(struct tty *tty, char *buffer, unsigned long count)
         clear_bit(ldata->read_flags, eol);
     ldata->read_tail += c;
     return n;
-}
-
-static int n_tty_open(struct tty *tty)
-{
-    unsigned long *marked_chars;
-    struct n_tty_data *ldata;
-    ldata = cake_alloc(sizeof(*ldata));
-    memset(ldata, 0, sizeof(*ldata));
-    marked_chars = ldata->char_map;
-    tty->disc_data = ldata;
-    bitmap_zero(marked_chars, 256);
-    set_bit(marked_chars, TTY_NEWLINE_CHAR(tty));
-    set_bit(marked_chars, TTY_ERASE_CHAR(tty));
-    set_bit(marked_chars, TTY_INTR_CHAR(tty));
-    set_bit(marked_chars, TTY_EOF_CHAR(tty));
-    return 0;
 }
 
 static int n_tty_receive_buf(struct tty *tty, char *buffer, unsigned int count)

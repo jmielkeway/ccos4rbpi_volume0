@@ -38,4 +38,5 @@ void __atomic64_or(volatile unsigned long *bitmap, unsigned long bit);
 unsigned long __atomic64_sub_return(volatile unsigned long *initial, unsigned long count);
 unsigned long __cmpxchg_relaxed(volatile void *ptr, unsigned long cmp, unsigned long xchg);
 unsigned long __xchg_relaxed(volatile void *ptr, unsigned long xchg);
+
 #endif
