@@ -43,7 +43,7 @@
   ##### [*The Kernel Workqueue*](chapter8/workqueue.md)
 ### Parts[3]: User Space
 #### [Chapters[9]: Virtual Memory](chapter09/chapter09.md)
-  ##### *User Space Page Tables*
+  ##### [*User Space Page Tables*](chapter09/pagetables.md)
   ##### *The Page Fault Handler*
   ##### *System Calls*
   ##### *Executing Into User Space*
