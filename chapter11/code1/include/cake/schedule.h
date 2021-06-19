@@ -18,6 +18,7 @@
 #include "cake/compiler.h"
 #include "cake/list.h"
 #include "cake/lock.h"
+#include "cake/process.h"
 #include "arch/schedule.h"
 
 #define PREEMPT_DISABLE()       do { \
