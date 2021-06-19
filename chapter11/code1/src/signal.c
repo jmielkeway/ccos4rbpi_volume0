@@ -13,8 +13,8 @@
  */
 
 #include "cake/allocate.h"
-#include "cake/signal.h"
 #include "cake/schedule.h"
+#include "cake/signal.h"
 #include "cake/user.h"
 #include "arch/lock.h"
 #include "user/signal.h"
@@ -25,11 +25,11 @@
                              SIGMASK(SIGTTIN) | \
                              SIGMASK(SIGTTOU))
 
-extern struct process *pid_process(int pid);
-extern void memset(void *dest, int c, unsigned long count);
 extern void do_exit(int errno);
+extern void memset(void *dest, int c, unsigned long count);
+extern struct process *pid_process(int pid);
 
-int send_signal(int signal, struct siginfo *info, struct process *p);
+static int send_signal(int signal, struct siginfo *info, struct process *p);
 static void signal_clear(struct signal *signal, unsigned long signal_mask);
 static void signal_parent_stop(struct process *p, unsigned long flags);
 
@@ -114,7 +114,7 @@ start:
     return signo > 0;
 }   
 
-int send_signal(int signo, struct siginfo *info, struct process *p)
+static int send_signal(int signo, struct siginfo *info, struct process *p)
 {
     struct signal *signal = p->signal;
     struct sigqueue *q;

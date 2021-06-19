@@ -49,11 +49,11 @@ extern void memset(void *dest, int c, unsigned long count);
 struct process *pid_process(unsigned int pid);
 
 static int n_tty_close(struct tty *tty);
-static void n_tty_receive_marked_char(struct tty *tty, char c);
-static void n_tty_receive_normal_char(struct tty *tty, char c);
 static int n_tty_open(struct tty *tty);
 static long n_tty_read(struct tty *tty, char *user, unsigned long n);
 static int n_tty_receive_buf(struct tty *tty, char *user, unsigned int n);
+static void n_tty_receive_marked_char(struct tty *tty, char c);
+static void n_tty_receive_normal_char(struct tty *tty, char c);
 static long n_tty_write(struct tty *tty, char *user, unsigned long n);
 static int tty_close(struct file *file);
 static int tty_ioctl(struct file *file, unsigned int request, unsigned long arg);

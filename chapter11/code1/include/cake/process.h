@@ -20,6 +20,7 @@
 #include "cake/file.h"
 #include "cake/list.h"
 #include "cake/lock.h"
+#include "cake/vm.h"
 #include "arch/process.h"
 
 #define CPUMASK_SIZE                        BITMAP_SIZE(NUM_CPUS)
