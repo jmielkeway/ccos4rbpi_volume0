@@ -49,7 +49,7 @@ static inline unsigned long find_next_bit(volatile unsigned long *bitmap,
     unsigned long tmp;
     if (start >= nbits) {
         return nbits;
-	}
+    }
     tmp = bitmap[start / BITS_PER_LONG];
     tmp &= BITMAP_FIRST_WORD_MASK(start);
     start = ROUND_DOWN(start, BITS_PER_LONG);
@@ -57,7 +57,7 @@ static inline unsigned long find_next_bit(volatile unsigned long *bitmap,
         start += BITS_PER_LONG;
         if (start >= nbits) {
             return nbits;
-		}
+        }
         tmp = bitmap[start / BITS_PER_LONG];
     }
     tmp = start + __builtin_ctzl(tmp);
@@ -65,14 +65,14 @@ static inline unsigned long find_next_bit(volatile unsigned long *bitmap,
 } 
 
 static inline unsigned long find_next_zero_bit(volatile unsigned long *bitmap, 
-	unsigned long start,
-	unsigned long nbits)
+    unsigned long start,
+    unsigned long nbits)
 {
     unsigned long tmp;
-	unsigned long invert = ~0UL;
+    unsigned long invert = ~0UL;
     if (start >= nbits) {
         return nbits;
-	}
+    }
     tmp = bitmap[start / BITS_PER_LONG];
     tmp ^= invert;
     tmp &= BITMAP_FIRST_WORD_MASK(start);
@@ -81,7 +81,7 @@ static inline unsigned long find_next_zero_bit(volatile unsigned long *bitmap,
         start += BITS_PER_LONG;
         if (start >= nbits) {
             return nbits;
-		}
+        }
         tmp = bitmap[start / BITS_PER_LONG];
         tmp ^= invert;
     }

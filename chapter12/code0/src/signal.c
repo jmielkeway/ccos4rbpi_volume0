@@ -13,8 +13,8 @@
  */
 
 #include "cake/allocate.h"
-#include "cake/signal.h"
 #include "cake/schedule.h"
+#include "cake/signal.h"
 #include "cake/user.h"
 #include "arch/lock.h"
 #include "user/signal.h"

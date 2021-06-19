@@ -29,7 +29,6 @@
 extern struct memmap idle_memmap;
 
 extern unsigned int allocate_pid(struct process *p);
-extern void drop_memmap(struct memmap *memmap);
 extern void free_process(struct process *p);
 extern void memset(void *dest, int c, unsigned long count);
 

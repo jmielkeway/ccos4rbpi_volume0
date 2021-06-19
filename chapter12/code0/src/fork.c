@@ -37,8 +37,8 @@ extern void init_mem_context(struct memmap *new);
 extern void memcpy(void *to, void *from, unsigned long count);
 extern void memset(void *dest, int c, unsigned long count);
 
-static long do_clone(unsigned long flags, unsigned long thread_input, unsigned long arg);
 static long copy_signal(unsigned long flags, struct process *p);
+static long do_clone(unsigned long flags, unsigned long thread_input, unsigned long arg);
 static struct process *duplicate_current();
 static struct memmap *duplicate_memmap(struct memmap *old, struct process *p);
 
@@ -126,10 +126,14 @@ static struct process *copy_process(unsigned long flags,
         goto freememmap;
     }
     if(copy_arch_context(flags, thread_input, arg, p)) {
-        goto freememmap;
+        goto freesignal;
     }
     p->pid = allocate_pid(p);
     return p;
+freesignal:
+    if(atomic_dec_and_test(&p->signal->refcount)) {
+        cake_free(p->signal);
+    }
 freememmap:
     if(p->memmap) {
         put_memmap(p->memmap);
