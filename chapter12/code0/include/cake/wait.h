@@ -17,6 +17,7 @@
 
 #include "cake/list.h"
 #include "cake/lock.h"
+#include "cake/process.h"
 
 struct waitqueue {
     struct list waitlist;

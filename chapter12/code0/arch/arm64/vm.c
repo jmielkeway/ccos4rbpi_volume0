@@ -40,11 +40,10 @@
 #define TLBI_ASID(x)    ((x & 0xFFFF) << 48)
 #define USER_EXEC(vm)   (!(((vm)->prot) & PTE_UXN))
 
-extern unsigned long empty_zero_page[];
 extern struct memmap idle_memmap;
 
 extern void __flush_icache_range(void *va, unsigned long length);
-extern void __memmap_switch(unsigned long pgd, unsigned long asid, unsigned long zero_page);
+extern void __memmap_switch(unsigned long pgd, unsigned long asid);
 extern void __tlbi_aside1is(unsigned long asid);
 extern void __tlbi_vmalle1();
 extern struct virtualmem *alloc_virtualmem();
@@ -201,8 +200,7 @@ void memmap_switch(struct memmap *old, struct memmap *new, struct process *p)
             WRITE_ONCE(active_asids[cpuid], asid);
             SPIN_UNLOCK_IRQRESTORE(&asid_lock, flags);
         }
-        __memmap_switch(VIRT_TO_PHYS((unsigned long) (new->pgd)), asid, 
-            VIRT_TO_PHYS((unsigned long) (empty_zero_page)));
+        __memmap_switch(VIRT_TO_PHYS((unsigned long) (new->pgd)), asid);
     }
 }
 

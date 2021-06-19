@@ -16,9 +16,6 @@
 #include "user/signal.h"
 #include "user/wait.h"
 
-#define NUM_BUILTINS    (3)
-#define NUM_PROGRAMS    (2)
-
 #define STDIN       (0)
 #define STDOUT      (1)
 #define BUF_LEN     (0x100)

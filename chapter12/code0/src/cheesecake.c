@@ -31,8 +31,8 @@ extern void paging_init();
 extern int perform_work(void *unused);
 extern void pid_init();
 extern void schedule_current();
-extern void signal_init();
 extern void schedule_init();
+extern void signal_init();
 extern void smp_init();
 extern int startup_user(void *user_function);
 extern void timer_init();
@@ -50,7 +50,7 @@ void cheesecake_main(void)
     SPIN_LOCK_BOOT(&big_cake_lock);
     init();
     log("Hello, Cheesecake!\r\n");
-    log("Version: 0.12.0.37\r\n");
+    log("Version: 0.12.0.33\r\n");
     SPIN_UNLOCK_BOOT(&big_cake_lock);
     IRQ_ENABLE();
     do_idle();

@@ -15,7 +15,6 @@
 #include "cake/file.h"
 #include "arch/schedule.h"
 
-#define MAX_OPEN_FILES      (16)
 #define OPEN_FULL_MASK      ((1 << (MAX_OPEN_FILES)) - 1)
 #define FD_TOGGLE(map, fd)  (map ^= (1 << fd))
 #define FD_CHECK(map, fd)   (map & (1 << fd))
@@ -64,24 +63,17 @@ long sys_ioctl(unsigned int fd, unsigned int request, unsigned long arg)
     }
 }
 
-int sys_open(int file_reservation)
-{
-    return do_open(file_reservation);
-}
-
 long sys_read(unsigned int fd, char *user, unsigned long count)
 {
-    long retval;
     struct process *current = CURRENT;
     struct folder *folder = &(current->folder);
     struct file *file = folder->files[fd];
     if(FD_CHECK(folder->openmap, fd)) {
-        retval = file->ops->read(file, user, count);
+        return file->ops->read(file, user, count);
     }
     else {
-       retval = -1;
+        return -1;
     }
-    return retval;
 }
 
 long sys_write(unsigned int fd, char *user, unsigned long count)
