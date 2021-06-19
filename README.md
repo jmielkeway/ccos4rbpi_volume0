@@ -42,11 +42,11 @@
   ##### [*Waitqueues*](chapter8/waitqueues.md)
   ##### [*The Kernel Workqueue*](chapter8/workqueue.md)
 ### Parts[3]: User Space
-#### Chapters[9]: Virtual Memory and Fake Partition
-  ##### *Userspace Page Tables*
+#### [Chapters[9]: Virtual Memory](chapter09/chapter09.md)
+  ##### *User Space Page Tables*
   ##### *The Page Fault Handler*
-  ##### *Building Userspace Programs*
-  ##### *Moving to Userspace*
+  ##### *System Calls*
+  ##### *Executing Into User Space*
 #### Chapters[10]: The TTY and File Abstraction
   ##### *Low Level Driver*
   ##### *Line Discipline*
