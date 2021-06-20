@@ -45,7 +45,7 @@
 #### [Chapters[9]: Virtual Memory](chapter09/chapter09.md)
   ##### [*User Space Page Tables*](chapter09/pagetables.md)
   ##### [*The Page Fault Handler*](chapter09/pagefault.md)
-  ##### *System Calls*
+  ##### [*System Calls*](chapter09/syscall.md)
   ##### *Executing Into User Space*
 #### Chapters[10]: The TTY and File Abstraction
   ##### *Low Level Driver*
