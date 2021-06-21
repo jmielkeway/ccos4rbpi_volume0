@@ -49,7 +49,7 @@
   ##### [*Executing Into User Space*](chapter09/exec.md)
 #### [Chapters[10]: The TTY Driver with File Abstraction](chapter10/chapter10.md)
   ##### [*Writing*](chapter10/write.md)
-  ##### *Reading*
+  ##### [*Reading*](chapter10/read.md)
   ##### *Embryonic Shell*
 #### Chapters[11]: Signals
   ##### *Sending*
