@@ -47,18 +47,14 @@
   ##### [*The Page Fault Handler*](chapter09/pagefault.md)
   ##### [*System Calls*](chapter09/syscall.md)
   ##### [*Executing Into User Space*](chapter09/exec.md)
-#### Chapters[10]: The TTY and File Abstraction
-  ##### *Low Level Driver*
-  ##### *Line Discipline*
-  ##### *Writing and Reading*
-  ##### *Super Simple Cat Program*
+#### [Chapters[10]: The TTY Driver with File Abstraction](chapter10/chapter10.md)
+  ##### *Writing*
+  ##### *Reading*
+  ##### *Embryonic Shell*
 #### Chapters[11]: Signals
-  ##### *Killing*
-  ##### *Waiting*
-  ##### *Signaling*
+  ##### *Sending*
+  ##### *Receiving*
 #### Chapters[12]: The Shell
   ##### *The Shell*
-  ##### *Builtins*
-  ##### *Utilities*
 #### Chapters[13]: Bonus
-  #### *Raspberry Pi 3 Support*
+  ##### *Raspberry Pi 3 Support*
