@@ -48,7 +48,7 @@
   ##### [*System Calls*](chapter09/syscall.md)
   ##### [*Executing Into User Space*](chapter09/exec.md)
 #### [Chapters[10]: The TTY Driver with File Abstraction](chapter10/chapter10.md)
-  ##### *Writing*
+  ##### [*Writing*](chapter10/write.md)
   ##### *Reading*
   ##### *Embryonic Shell*
 #### Chapters[11]: Signals
