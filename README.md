@@ -51,7 +51,7 @@
   ##### [*Writing*](chapter10/write.md)
   ##### [*Reading*](chapter10/read.md)
   ##### [*Embryonic Shell*](chapter10/shell.md)
-#### Chapters[11]: Signals
+#### [Chapters[11]: Signals](chapter11/chapter11.md)
   ##### *Sending*
   ##### *Receiving*
 #### Chapters[12]: The Shell
