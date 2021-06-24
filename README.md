@@ -50,7 +50,7 @@
 #### [Chapters[10]: The TTY Driver with File Abstraction](chapter10/chapter10.md)
   ##### [*Writing*](chapter10/write.md)
   ##### [*Reading*](chapter10/read.md)
-  ##### *Embryonic Shell*
+  ##### [*Embryonic Shell*](chapter10/shell.md)
 #### Chapters[11]: Signals
   ##### *Sending*
   ##### *Receiving*
