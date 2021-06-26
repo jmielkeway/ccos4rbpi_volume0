@@ -53,7 +53,7 @@
   ##### [*Embryonic Shell*](chapter10/shell.md)
 #### [Chapters[11]: Signals](chapter11/chapter11.md)
   ##### [*Sending*](chapter11/sending.md)
-  ##### *Receiving*
+  ##### [*Receiving*](chapter11/receiving.md)
 #### Chapters[12]: The Shell
   ##### *The Shell*
 #### Chapters[13]: Bonus
