@@ -54,7 +54,7 @@
 #### [Chapters[11]: Signals](chapter11/chapter11.md)
   ##### [*Sending*](chapter11/sending.md)
   ##### [*Receiving*](chapter11/receiving.md)
-#### Chapters[12]: The Shell
+#### [Chapters[12]: The Shell](chapter12/chapter12.md)
   ##### *The Shell*
 #### Chapters[13]: Bonus
   ##### *Raspberry Pi 3 Support*
