@@ -56,5 +56,5 @@
   ##### [*Receiving*](chapter11/receiving.md)
 #### [Chapters[12]: The Shell](chapter12/chapter12.md)
   ##### [*The Shell*](chapter12/shell.md)
-#### Chapters[13]: Bonus
+#### [Chapters[13]: Bonus](chapter13/chapter13.md)
   ##### *Raspberry Pi 3 Support*
