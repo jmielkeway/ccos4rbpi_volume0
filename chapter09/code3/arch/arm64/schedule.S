@@ -52,7 +52,6 @@ __memmap_switch:
     and         x2, x3, x2
     msr         ttbr0_el1, x2
     isb
-    tlbi        vmalle1
     bfi         x0, x1, #48, #16
     msr         ttbr0_el1, x0
     isb
