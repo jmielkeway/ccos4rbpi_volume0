@@ -72,7 +72,7 @@
 #define TCR_SH0                     BIT_NOT_SET(13) | BIT_NOT_SET(12)
 #define TCR_TG0                     BIT_NOT_SET(15) | BIT_NOT_SET(14)
 #define TCR_T1SZ                    (((UL(64)) - (VA_BITS)) << (TCR_T1SZ_SHIFT))
-#define TCR_A1                      BIT_SET(22)
+#define TCR_A1                      BIT_NOT_SET(22)
 #define TCR_IRGN1                   BIT_NOT_SET(25) | BIT_NOT_SET(24)
 #define TCR_ORGN1                   BIT_NOT_SET(27) | BIT_NOT_SET(26)
 #define TCR_SH1                     BIT_NOT_SET(29) | BIT_NOT_SET(28)
