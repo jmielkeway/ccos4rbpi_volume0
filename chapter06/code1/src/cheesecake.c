@@ -47,7 +47,7 @@ void cheesecake_main(void)
 static void do_idle()
 {
     unsigned long cpuid = SMP_ID();
-    char *version = "0.6.0.17";
+    char *version = "0.6.1.17";
     while (1) {
         unsigned long flags = SPIN_LOCK_IRQSAVE(&big_cake_lock);
         log("Version: %s\r\n", version);
