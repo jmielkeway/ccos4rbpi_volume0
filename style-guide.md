@@ -11,8 +11,7 @@ All opened issues are expected to follow this format:
   - :art: for refactoring or beautification (both code and text)
   - :books: for external documentation
   - :notebook: for notes
-  - :pencil2: for rough drafts
-  - :black_nib: for production text
+  - :pencil2: for material text revisions
   - :microscope: for typos, spelling errors, and broken links
   - :rocket: for something truly spectacular
   - :bulb: other, though, hopefully annotating an expansive thought
