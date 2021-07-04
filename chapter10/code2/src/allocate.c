@@ -299,6 +299,9 @@ void *cake_alloc(unsigned long size)
     struct cache *sizecache;
     unsigned int index;
     index = cake_alloc_index(size);
+    if(index < 0) {
+        return 0;
+    }
     sizecache = &(sizecaches[index]);
     return alloc_obj(sizecache);
 }
