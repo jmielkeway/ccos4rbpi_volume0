@@ -15,9 +15,10 @@
   ##### [*Logging*](chapter01/logging.md)
 ### Parts[1]: Architecture
 #### [Chapters[2]: Processor Initiliazation and Exceptions](chapter02/chapter2.md)
+  ##### [*Introduction to ARM Processor Initialization*](chapter02/arm-init.md)
   ##### [*Setting the Exception Level in the ARM Stub*](chapter02/arm-stub.md)
-  ##### [*Exceptions and the ARM Exception Vector Table*](chapter02/exception-vector-table.md)
-  ##### [*The Interrupt Controller*](chapter02/interrupt-controller.md)
+  ##### [*Exceptions and Vector Table*](chapter02/exception-vector-table.md)
+  ##### [*Generic Interrupt Controller*](chapter02/interrupt-controller.md)
   ##### [*Timer Interrupts*](chapter02/timer-interrupts.md)
 #### [Chapters[3]: Memory Management Unit](chapter03/chapter3.md)
   ##### [*ARM Page Tables*](chapter03/arm-page-tables.md)
