@@ -1,11 +1,11 @@
-*Chapter Top* [Chapters[1]: Hello, Cheesecake!](chapter1.md)  |  *Next Chapter* [Chapters[2]: Processor Initialization and Exceptions](../chapter2/chapter2.md)
-*Previous Page* [Building and Linking](building-linking.md)  |  *Next Page* [Chapters[2]: Processor Initialization and Exceptions](../chapter2/chapter2.md)
+*Chapter Top* [Chapters[1]: Hello, Cheesecake!](chapter1.md)  |  *Next Chapter* [Chapters[2]: Processor Initialization and Exceptions](../chapter02/chapter2.md)  
+*Previous Page* [Conventions, Design, Building, and Linking](conventions-design-building-linking.md)  |  *Next Page* [Chapters[2]: Processor Initialization and Exceptions](../chapter02/chapter2.md)
 
 ## Logging([chapter1/code2](code2))
 
 #### Some Useful Definitions
 
-Having explicit control over the size of variables is crucial in some cases. It is therefore a decent idea to steal some macros from Linux and keep them in a a [header file](include/cake/types.h) for whenever we need them:
+Having explicit control over the size of variables is convenient in certain cases. It is therefore a decent idea to steal some macros from Linux and keep them in a [header file](include/cake/types.h) for whenever we need them:
 
 ```C
 #ifndef _CAKE_TYPES_H
@@ -35,6 +35,8 @@ typedef __u64 u64;
 #endif
 ```
 
+> Note: see the Linux [include/uapi/asm-generic/int-ll64.h](https://github.com/torvalds/linux/blob/v4.20/include/uapi/asm-generic/int-ll64.h) and [include/asm-generic/int-ll64.h](https://github.com/torvalds/linux/blob/v4.20/include/asm-generic/int-ll64.h) sources for the originals.
+
 #### Some Useful Logging
 
 Currently, our log function takes a null-terminated string, and outputs it to the console. How dull! We want to be able to log some formatted output. If we want to know the address of a variable (a pointer), or the value stored at that address (dereferencing a pointer), we need some hex-logging capability. We are going to add that to our [src/log.c](code2/src/log.c) module now:
@@ -54,7 +56,9 @@ struct writebuf {
     char s[BUFFER_SIZE];
 };
 ```
-We start by extending our module with the `writebuf` struct - size `256` bytes, a nice power of `2`! It is now possible to use an integer sized to exactly `1`-byte, with the `u8` type. This works better than the `char` type for our purposes, as we can use it to index our `255`-byte buffer without the compiler complaining. You can already guess that we are going to use this buffer to store the results of formatted input.
+
+We start by extending our module with the `writebuf` struct - size 256 bytes, a nice power of two. It is now possible to use an integer sized to exactly one byte with the `u8` type. This works better than the `char` type for our purposes, as we can use it to index our 255-byte buffer without the compiler complaining. You can already guess that we are going to use this buffer to store the results of formatted output on its way out.
+
 ```C
 static void flush(struct writebuf *w)
 {
@@ -63,7 +67,7 @@ static void flush(struct writebuf *w)
     }
 }
 ```
-The static `flush` function is responsible for sending the characters we wish to log to the console object, initalized as before.
+The static `flush` function is responsible for sending the characters we wish to log to the console object, initialized as before.
 
 ```C
 static int check_flush(struct writebuf *w)
@@ -75,7 +79,9 @@ static int check_flush(struct writebuf *w)
     return 0;
 }
 ```
-At necessary intervals, there is a boolean check to determine if it is necessary to flush the buffer. The function will return true and perform the flush if `254` characters - the resolution of the `MAX_BUFFER_DATA_FOR_NULL_TERM` macro - have been stored in the buffer.
+
+At key junctures, there is a boolean check to determine if it is necessary to flush the buffer. The function will return true and perform the flush if 254 characters - the value given by the resolution of the `MAX_BUFFER_DATA_FOR_NULL_TERM` macro - have been stored in the buffer.
+
 ```C
 static void cleanbuf(struct writebuf *w)
 {
@@ -85,7 +91,9 @@ static void cleanbuf(struct writebuf *w)
     }
 }
 ```
-The convenient `cleanbuf` function is used to initalize a buffer on the stack.
+
+The convenient `cleanbuf` function is used to initialize a buffer on the stack.
+
 ```C
 void log(char *fmt, ...)
 {
@@ -130,7 +138,9 @@ void log(char *fmt, ...)
     va_end(va);
 }
 ```
-The public logging function begins by declaring a `writebuf` on the stack, cleaning it, and starting the variable arugments list. It then loops through each character of the given format string `fmt`. If the special `%` character is encountered, it grabs the next variable argument, and calls a corresponding function to write that argument into the `writebuf`. As each character is written to the buffer, we ask if the buffer is full. After the buffer has filled up, or after all the input has been processed into the buffer, the buffer is flushed, and the variable args list ended.
+
+The public logging function begins by declaring a `struct writebuf` on the stack, cleaning it, and starting the variable arguments list. It then loops through each character of the given format string `fmt`. When encountering the special _%_ character, it grabs the next variable argument, and calls a corresponding function to write that argument into the `writebuf`. As each character is written to the buffer, we ask if the buffer is full. After the buffer has filled up, or after all the input has been processed into the buffer, the buffer is flushed, and the variable arguments list released.
+
 ```C
 static int putstr(char *s, struct writebuf *w)
 {
@@ -144,7 +154,9 @@ static int putstr(char *s, struct writebuf *w)
     return 0;
 }
 ```
-No surprises for string formatting!
+
+There are no surprises for the string formatting function.
+
 ```C
 static int puthex(unsigned long x, struct writebuf *w)
 {
@@ -161,7 +173,10 @@ static int puthex(unsigned long x, struct writebuf *w)
     return 0;
 }
 ```
-For creating a formatted hex-string, a temporary buffer of `27` characters (at most `18` would be needed) is allocated on the stack and passed to the `xintos` function to do the work.
+
+For creating a formatted hex-string, a temporary buffer of 27 characters (at most eighteen are used) is allocated on the stack and passed to the `xintos` function to do the work:
+
+
 ```C
 static void xintos(unsigned long x, char *t)
 {
@@ -186,9 +201,10 @@ static void xintos(unsigned long x, char *t)
     return;
 }
 ```
-Another temporary buffer of `16` bytes is allocated on the stack. This is to hold the reverse of the hex string as we chop of the modulo `16` until we exhaust the value of the `unsigned long` `x`. A do-while loop is the correct choice in case the value of `x` is `0`, we will end with `0x0` instead of just `0x`.
 
-We can now update our `cheesecake_main` function to make use of our spiffy new functionality:
+Another temporary buffer of sixteen bytes is allocated on the stack. This is to hold the reverse of the hex string as we chop off the modulo sixteen at each iteration until we exhaust the value of `x`. A do-while loop is the correct choice. In case the value of `x` is zero, we will end with 0x0 instead of just 0x.
+
+We can now update our `cheesecake_main` function to make use of format strings:
 
 ```C
 void cheesecake_main(void)
@@ -206,9 +222,9 @@ void cheesecake_main(void)
 }
 ```
 
-After building and loading, if everything has gone right, you might see something that looks a little bit like:
+After building and loading, if everything has gone right, you might see something that looks a bit like:
 
 ![Raspberry Pi Logging Cheesecake](images/0103_rpi4_logging.png)
 
-*Chapter Top* [Chapters[1]: Hello, Cheesecake!](chapter1.md)  |  *Next Chapter* [Chapters[2]: Processor Initialization and Exceptions](../chapter2/chapter2.md)
-*Previous Page* [Building and Linking](building-linking.md)  |  *Next Page* [Chapters[2]: Processor Initialization and Exceptions](../chapter2/chapter2.md)
+*Previous Page* [Conventions, Design, Building, and Linking](conventions-design-building-linking.md)  |  *Next Page* [Chapters[2]: Processor Initialization and Exceptions](../chapter02/chapter2.md)  
+*Chapter Top* [Chapters[1]: Hello, Cheesecake!](chapter1.md)  |  *Next Chapter* [Chapters[2]: Processor Initialization and Exceptions](../chapter02/chapter2.md)
