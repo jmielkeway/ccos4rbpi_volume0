@@ -1,40 +1,11 @@
-*Chapter Top* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Chapter* [Chapters[3]: Processor Initialization and Exceptions](../chapter2/chapter2.md)   
-*Previous Page* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Page* [Exceptions and the ARM Exception Vector Table](exception-vector-table.md)
+*Chapter Top* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Chapter* [Chapters[3]: Memory Management Unit](../chapter03/chapter3.md)  
+*Previous Page* [Introduction to ARM Processor Initialization](arm-init.md)  |  *Next Page* [Exceptions and the Vector Table](exception-vector-table.md)
 
 ## Setting the Exception Level in the ARM Stub ([chapter2/code0](code0))
 
-#### What We're Baking With
+#### ARM Processor Configuration
 
-```bash
-ccos4rbpi:~$ tree
-.
-├── Makefile
-├── arch
-│   └── arm64
-│       ├── board
-│       │   └── raspberry-pi-4
-│       │       ├── config.txt
-│       │       ├── mini-uart.S
-│       │       ├── mini-uart.c
-│       │       └── secure_boot.S
-│       ├── include
-│       │   └── arch
-│       │       ├── bare-metal.h
-│       │       └── timing.h
-│       ├── linker.ld
-│       ├── main.S
-│       └── timing.S
-├── build.sh
-├── include
-│   └── cake
-│       ├── log.h
-│       └── types.h
-└── src
-    ├── cheesecake.c
-    └── log.c
-```
-
-The [arch/arm64/include/arch/bare-metal.h](code0/arch/arm64/include/arch/bare-metal.h) begins with one convenience macro establish a bit is set in the system registers we will be setting up in this section:
+The [arch/arm64/include/arch/bare-metal.h](code0/arch/arm64/include/arch/bare-metal.h) begins with one convenience macro to set a bit in the system registers we will be writing in this slice:
 
 ```C
 #ifndef _ARCH_BARE_METAL_H
@@ -45,26 +16,16 @@ The [arch/arm64/include/arch/bare-metal.h](code0/arch/arm64/include/arch/bare-me
 #endif
 ```
 
-#### ARM Processor Exception Levels
-
-Before diving in to the dirty details of the ARM Stub, we take a gentle detour into ARM Processor Exception Levels. An ARMv8 processor has `4` exception levels. The highest exception level - the most priveldeged -  is Exception Level EL3. EL3 is the Exception Level the processor resets with. EL3 has access to all system registers. 
-
-Exception Level EL2 is used to implement a hypervisor, or virtualization. If the lowest level software, the operating system, is implemented for EL2, the system can support mutliple operating systems (imagine Linux and Windows), often referred to as "guest" operating systems in the literature. 
-
-Most operating systems operate at EL1, including Linux and ultimately CheesecakeOS. EL0, the least privledged Exception Level, is for userspace. As we progress, we will see how EL1 is able to securely deliver to EL0 the services needed to make user space software operate in the way we have come to depend on. 
-
->A quick note about system registers: they are generally referred to as ${REGISTER_NAME}_${EXCEPTION_LEVEL}, where ${EXCEPTION_LEVEL} is the minimum level from which the register may be accessed.
-
-The quick summary of Processor Exception Levels looks like:
+Before diving in to the dirty details of the ARM Stub, let us whisk through a gentle restatement of the roles of the ARM Processor Exception Levels:
 
 | Exception Level | Purpose |
 |:---------------:|:-------:|
-| EL3 | Most priviledged; sercure mode; the reset state |
-| EL2 | Hypervisor;  Used to implement virutalization |
+| EL3 | Most privileged; secure mode; the reset state |
+| EL2 | Hypervisor;  Used to implement virtualization |
 | EL1 | Guest OS; Where CheesecakeOS Kernel lives |
-| EL0 | Userspace |
+| EL0 | User space applications |
 
-In order to properly initalize our processors, we will have to setup some system registers with sane values at boot time. To start, the board-specific [arch/arm64/board/raspberry-pi-4/secure-boot.S](code0/arch/arm64/board/raspberry-pi-4/secure-boot.S) source is respnsible for setting up the board and processors such that the remainder of the boot process can be handled by [arch/arm64/main.S](code0/arch/arm64/main.S):
+In order to properly initialize our processors, we will have to set several system registers with sane values at boot time. The board-specific [arch/arm64/board/raspberry-pi-4/secure-boot.S](code0/arch/arm64/board/raspberry-pi-4/secure-boot.S) source is responsible for initializing the board and processors such that the remainder of the boot process can be handled by the architecture:
 
 ```asm
 #define SCR_EL3_RW          BIT_SET(10)
@@ -79,11 +40,11 @@ In order to properly initalize our processors, we will have to setup some system
                              SCR_EL3_NS)
 ```
 
-`SCR_EL3`, the Secure Configuration Register, is described on `pg. 2648` of the `ARM ARM`:
-- `SCR_EL3_RW` determines that `EL1`, our target Exception Level, will execute in the `AArch64` execution state
-- `SCR_EL3_SMD` disables secure monitor calls - once we leave `EL3`, there will be no returning
-- `SCR_EL3_RES1_5` and `SCR_EL3_RES1_4` are required to be set
-- `SCR_EL3_NS` is the non-secure bit, indicating that we will be running in the non-secure state (no access to "secure" world)
+`SCR_EL3`, the _Secure Configuration Register_, is described on `pg. D10-2648` of the `ARM ARM`. The least significant bit of the register is labeled as bit zero. Initialization shows setting these bits:
+- `SCR_EL3_RW` determines that `EL1`, our target Exception Level, will execute in the `AArch64` execution state.
+- `SCR_EL3_SMD` disables secure monitor calls - once we leave `EL3`, there will be no returning.
+- `SCR_EL3_RES1_5` and `SCR_EL3_RES1_4` are required by the architecture to always be set, or, reserved one.
+- `SCR_EL3_NS` is the non-secure bit, indicating that we will be running in the _non-secure_ state (no access to _secure_ world).
 
 ```asm
 #define SPSR_EL3_D          BIT_SET(9)
@@ -98,17 +59,17 @@ In order to properly initalize our processors, we will have to setup some system
                              SPSR_EL3_EL1h)
 ```
 
-`SPSR_EL3`, the `EL3` Saved Program Status Register must be initalized with the Exception Level we would like to be in when we leave `EL3`:
-- `SPSR_EL3_D`, `SPSR_EL3_A`, `SPSR_EL3_I`, and `SPSR_EL3_F` mask all exceptions
-- `SPSR_EL3_EL1h` lets the system know to use `EL1` with its own designated stack pointer when leaving `EL3`
+`SPSR_EL3`, the `EL3` _Saved Program Status Register_ (`pg. C5-389`) may be initialized such that the processor is executing in a specified mode after completing an `eret` instruction:
+- `SPSR_EL3_D`, `SPSR_EL3_A`, `SPSR_EL3_I`, and `SPSR_EL3_F` mask all the maskable exceptions, the acronym _DAIF_ we learned about previously. These bits are masked on reset, and setting the bits in `SPSR_EL3` ensures they will remain masked after `eret`.
+- The `SPSR_EL3_EL1h` setting in the `M`(ode) bits lets the system know to execute at `EL1` with its own designated stack pointer when leaving `EL3` via `eret`.
 
 ```asm
 #define HCR_EL2_RW          BIT_SET(31)
 #define HCR_EL2_VALUE       HCR_EL2_RW
 ```
 
-`HCR_EL2`, the Hypervisor Configuration Register, is described on `pg. 2487` of the `ARM ARM`. 
-- `HCR_EL2_RW` determines that `EL1`, our target Exception Level, will execute in the `AArch64` execution state
+`HCR_EL2`, the _Hypervisor Configuration Register_, is described on `pg. D10-2487`:
+- `HCR_EL2_RW` determines `EL1`, our target Exception Level, will execute in the `AArch64` execution state.
 
 ```asm
 #define SCTLR_EL1_RES1_29   BIT_SET(29)
@@ -125,11 +86,11 @@ In order to properly initalize our processors, we will have to setup some system
                              SCTLR_EL1_RES1_11)
 ```
 
-`SCTLR_EL1`, the System Control Register, is described on `pg. 2654` of the `ARM ARM`. For now only the required RES1 bits are set. Notably, caches and the Memory Management Unit are left disabled for now.
+`SCTLR_EL1`, the _System Control Register_, is described on `pg. D10-2654` of the `ARM ARM`. For now only the required RES1 bits are set. Notably, caches and the Memory Management Unit are left disabled for now.
 
 #### The ARM Stub
 
-Given the configuration - the CheesecakeOS config.txt disables command-line tags, is loaded at address `0x0`, and always uses the High Peripheral memory map - we must provide our own ARM stub. The board-specific aspects of our secure boot are mostly borrowed from the [RaspberryPi ARM Stub](https://github.com/raspberrypi/tools/blob/master/armstubs/armstub8.S):
+Given the configuration - the CheesecakeOS config.txt disables command-line tags, loads the image at address `0x0`, and always uses the High Peripheral memory map - we must provide our own ARM stub. The board-specific aspects of our secure boot are mostly borrowed from the [Raspberryi Pi ARM Stub](https://github.com/raspberrypi/tools/blob/master/armstubs/armstub8.S):
 
 ```asm
 #include "arch/bare-metal.h"
@@ -195,7 +156,9 @@ __setup_arm_arch_regs:
     ret
 ```
 
-When the `__secure_board_specific_setup` routine returns to [arch/arm64/main.S](code0/arch/arm64/main.S), the system registers are properly setup to execute the `eret` instruction and place the processor in `EL1`:
+There is a notable subtlety in the `__secure_board_specific_setup`, the saving and restoring of `x30` to and from `x28`. Of course, `x30` is the link register which must be used to return to the caller of `__secure_board_specific_setup`. With no compiler to generate the instructions to save the chain of links on the stack, however, each `bl` instruction from within `__secure_board_specific_setup` itself will mangle the link register. We use this trick to ensure safe harbor for the return on completion.
+
+When the `__secure_board_specific_setup` routine returns to [arch/arm64/main.S](code0/arch/arm64/main.S), the system registers are properly setup to execute the `eret` instruction and place the processor in `EL1`. The only requirement from the architecture is to load the `__el1entry` address into `ELR_EL3` (`pg C5-351`) so the processor begins execution from the correct instruction:
 
 ```asm
 .globl __entry
@@ -206,10 +169,9 @@ __entry:
     eret
 ```
 
-Building and running CheesecakeOS will not look materially different. But perhaps you can _feel_ better now that the processor has been initalized:
+Building and running CheesecakeOS will not look materially different. Maybe the terminal _feels_ creamier now the processor has been initialized:
 
 ![Raspberry Pi EL Cheesecake](images/0201_rpi4_exceptionlevel.png)
 
-*Chapter Top* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Chapter* [Chapters[3]: Processor Initialization and Exceptions](../chapter2/chapter2.md)   
-*Previous Page* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Page* [Exceptions and the ARM Exception Vector Table](exception-vector-table.md)
-
+*Previous Page* [Introduction to ARM Processor Initialization](arm-init.md)  |  *Next Page* [Exceptions and the Vector Table](exception-vector-table.md)  
+*Chapter Top* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Chapter* [Chapters[3]: Memory Management Unit](../chapter03/chapter3.md)
