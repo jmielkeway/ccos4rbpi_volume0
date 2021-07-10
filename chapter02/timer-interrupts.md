@@ -1,61 +1,15 @@
-*Chapter Top* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Chapter* [Chapters[3]: Processor Initialization and Exceptions](../chapter3/chapter3.md)   
-*Previous Page* [The Interrupt Controller](interrupt-controller.md)  |  *Next Page* [Chapters[3]: Processor Initialization and Exceptions](../chapter3/chapter3.md)
+*Chapter Top* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Chapter* [Chapters[3]: Memory Management Unit](../chapter03/chapter3.md)   
+*Previous Page* [The Interrupt Controller](interrupt-controller.md)  |  *Next Page* [Chapters[3]: Memory Management Unit](../chapter03/chapter3.md)
 
 ## Timer Interrupts ([chapter2/code3](code3))
 
-#### What We're Baking With
-```bash
-ccos4rbpi:~$ tree
-.
-├── Makefile
-├── arch
-│   └── arm64
-│       ├── board
-│       │   └── raspberry-pi-4
-│       │       ├── config.txt
-│       │       ├── include
-│       │       │   └── board
-│       │       │       ├── bare-metal.h
-│       │       │       ├── devio.h
-│       │       │       ├── gic.h
-│       │       │       └── peripheral.h
-│       │       ├── irq.S
-│       │       ├── irq.c
-│       │       ├── mini-uart.S
-│       │       ├── mini-uart.c
-│       │       ├── secure-boot.S
-│       │       ├── timer.S
-│       │       └── timer.c
-│       ├── entry.S
-│       ├── error.c
-│       ├── exec
-│       │   └── asm-offsets.c
-│       ├── include
-│       │   └── arch
-│       │       ├── bare-metal.h
-│       │       ├── irq.h
-│       │       ├── linux-extension.h
-│       │       └── process.h
-│       ├── irq.S
-│       ├── linker.ld
-│       └── main.S
-├── build.sh
-├── include
-│   └── cake
-│       ├── log.h
-│       └── types.h
-├── kernel8.img
-└── src
-    ├── cheesecake.c
-    └── log.c
-
-```
-
-Having previously put in place the backbone for IRQ handling, in this section we add management of a system timer.
-
 #### The System Timer
 
-Timer interrupts are the soul of any preemptive operating system. Without them, processes would have to play kind and yield the processor to other tasks. A processes could completely dominate a system if it so chose. Fair scheduling would be a different game. In this section we are going to manage one of the system timers of the Raspberry Pi 4. We choose to use `System Timer #3`, as that is the one used in the [RaspberryPiOS Linux Source](https://github.com/raspberrypi/linux/blob/rpi-5.10.y/drivers/clocksource/bcm2835_timer.c#L27). The device is initalized and managed in [arch/arm64/board/raspberry-pi-4/timer.c](code3/arch/arm64/board/raspberry-pi-4/timer.c):
+Timer interrupts are at the heart of any preemptive OS. Without them, processes would have to play kind and voluntarily yield the processor to others. A single processes could dominate a CPU. Fair scheduling would be a different game. In this slice we are going to utilize one of the Raspberry Pi 4 system timers to generate an interrupt at regular intervals. We choose to use `System Timer #3`. 
+
+> Note: `System Timer #3` is the system timer used in the [RaspberryPiOS Linux Source](https://github.com/raspberrypi/linux/blob/rpi-5.10.y/drivers/clocksource/bcm2835_timer.c#L27). 
+
+The peripheral is initialized in [arch/arm64/board/raspberry-pi-4/timer.c](code3/arch/arm64/board/raspberry-pi-4/timer.c):
 
 ```C
 #define INTERRUPT_INTERVAL  (1000000)
@@ -72,36 +26,19 @@ void timer_init()
     current += INTERRUPT_INTERVAL;
     __timer_set_compare(current);
 }
-
-void timer_interrupt()
-{
-    timer_init();
-    __timer_control_reset();
-}
 ```
 
-The `INTERRUPT INTERVAL` is defined to be `1000000`, which will make the interrupt trigger after one second - the system timer is a `1MHz` clock. The source makes use of the low level devicec managment assembly in [arch/arm64/board/raspberry-pi-4/timer.S](code3/arch/arm64/board/raspberry-pi-4/timer.S):
+The system timer has a 1MHz clock. Defining the `INTERRUPT_INTERVAL` as 1000000 will cause the corresponding interrupt line to trigger after one second. During initialization, the source calls down to the low-level device management assembly in [arch/arm64/board/raspberry-pi-4/timer.S](code3/arch/arm64/board/raspberry-pi-4/timer.S). First, the current 32-bit counter for the timer is retrieved with a call to `__timer_clock_low`, and then the compare value on which to assert an interrupt is updated by setting `__timer_set_compare`:
 
 ```asm
 #define TIMER_BASE_REG  (MAIN_PERIPH_BASE + 0x2003000)
-#define TIMER_CS        ((TIMER_BASE_REG) + 0x0)
 #define TIMER_CLO       ((TIMER_BASE_REG) + 0x4)
 #define TIMER_C3        ((TIMER_BASE_REG) + 0x18)
-
-#define TIMER_CHANNEL   (3)
-#define TIMER_CS_M3     (1 << (TIMER_CHANNEL))
 
 .globl __timer_clock_low
 __timer_clock_low:
     __MOV_Q         x0, TIMER_CLO
     __DEV_READ_32   w0, x0
-    ret
-
-.globl __timer_control_reset
-__timer_control_reset:
-    mov             w0, TIMER_CS_M3
-    __MOV_Q         x1, TIMER_CS
-    __DEV_WRITE_32  w0, x1
     ret
 
 .globl __timer_set_compare
@@ -111,11 +48,37 @@ __timer_set_compare:
     ret
 ```
 
-The registers in use here are found in _Chapter 10. System Timer_ of the [BCM2711 ARM Peripherals Manual](https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2711/rpi_DATA_2711_1p0.pdf). The `__timer_control_reset` call is necessary, in order to clear the interrupt line - otherwise interrupts will be raised constantly, instead of after one second.
+When a timer interrupt is received, the exception handler will call `timer_interrupt`: 
 
-#### Handling the System Timer Interrupt
+```C
+void timer_interrupt()
+{
+    timer_init();
+    __timer_control_reset();
+}
+```
 
-Our code in beautiful, our will, strong, and our hearts pure. But without more initalization, timer interrupts still will not reach our processor. This is because all interrupts are managed by the GIC, and `System Timer #3` has not yet been enabled there. This is taken care of in [arch/arm64/board/raspberry-pi-4/irq.c](code3/arch/arm64/board/raspberry-pi-4/irq.c):
+The `timer_interrupt` function will reinitialize the timer for the next one-second interval. The `__timer_control_reset` function clears the interrupt line. Failing to do so would leave the interrupt asserted, causing the interrupt handler to execute as soon as interrupts are enabled, instead of after a full second:
+
+```asm
+#define TIMER_CS        ((TIMER_BASE_REG) + 0x0)
+
+#define TIMER_CHANNEL   (3)
+#define TIMER_CS_M3     (1 << (TIMER_CHANNEL))
+
+.globl __timer_control_reset
+__timer_control_reset:
+    mov             w0, TIMER_CS_M3
+    __MOV_Q         x1, TIMER_CS
+    __DEV_WRITE_32  w0, x1
+    ret
+```
+
+The registers we used here are found in _Chapter 10. System Timer_ of the [BCM2711 ARM Peripherals Manual](https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2711/rpi_DATA_2711_1p0.pdf).
+
+#### GIC Integration
+
+Our code is tasteful, our will strong, and our hearts pure. But without more initialization, timer interrupts will not reach our processor. This is because all interrupts are managed by the _GIC_, and `System Timer #3` is not yet enabled for that interface. This is taken care of in [arch/arm64/board/raspberry-pi-4/irq.c](code3/arch/arm64/board/raspberry-pi-4/irq.c):
 
 ```C
 #define SPID_TIMER3     (0x63)
@@ -140,7 +103,11 @@ void irq_init()
 }
 ```
 
-The value `0x63` or `99` for `SPID_TIMER3` comes from *Chapter 6. Interrupts of the [BCM2711 ARM Peripherals Manual](https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2711/rpi_DATA_2711_1p0.pdf). The initalization function makes use of an extended low-level interface from [arch/arm64/board/raspberry-pi-4/irq.S](code3/arch/arm64/board/raspberry-pi-4/irq.S):
+The value 0x63 or 99 for `SPID_TIMER3` comes from _Chapter 6. Interrupts_ of the [BCM2711 ARM Peripherals Manual](https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2711/rpi_DATA_2711_1p0.pdf):
+- `System Timer #3` is VideoCore interrupt #3 (`pg. 85`).
+- VideoCore IRQs begin at SPI (Shared Peripheral Interrupt) #96 (`pg. 87`).
+
+The initialization function `irq_init` makes use of an expanded low-level interface from [arch/arm64/board/raspberry-pi-4/irq.S](code3/arch/arm64/board/raspberry-pi-4/irq.S):
 
 ```asm
 .globl __irq_enable_spid
@@ -157,7 +124,20 @@ __irq_enable_spid:
     __DEV_WRITE_32  w2, x3
     isb
     ret
+```
 
+The `__irq_enable_spid` routine ensures the correct bit representing the desired interrupt is set in the correct `GICD_ISENABLERn` register. For example, with SPID 99:
+- The value is first shifted right by five bits (divide by 32), leaving a value of three.
+- This value is then shifted left by two bits (multiply by four), giving a value of twelve. 
+- This value is added to the base `GICD_ISENABLER_OFFSET`. In this case, the result is equivalent to `GICD_ISENABLER3`. 
+- The original value 99 has the least significant five bits masked (modulo 32), giving a value of three. 
+- This is used as the shift value for a bit written to the calculated register, again, in this example, `GICD_ISENABLER3`.
+- After bit three is set in `GICD_ISENABLER3`, `System Timer #3` is enabled with the distributor.
+- Since the `GICD_ISENABLERn` registers are set-enable, there is no need to `orr` with the current value of the register.
+
+The `__irq_target_cpumask` routine has similar logic to ensure the correct bits are set in the desired `GICD_ITARGETSRn` register. In our implementation, we set the input CPU mask to `CPU0_MASK` or 0b0001. The interrupt has been enabled with the _GIC_ distributor, but CPU 0 will be the only CPU enabled from the CPU interface side of the _GIC_. CPUs 1-3 will remain disabled, and will not be interrupted. The `GICD_ITARGETSRn` registers are _not_ set-enable, so an `orr` with the register's current value is required to avoid corrupting the state.
+
+```asm
 .globl __irq_target_cpumask
 __irq_target_cpumask:
     mov             w3, #3
@@ -175,11 +155,7 @@ __irq_target_cpumask:
     ret
 ```
 
-The `__irq_enable_spid` routine ensures the correct bit representing the desired interrupt is set in the correct *GICD_ISENABLERn* register. For SPID `99`, the value is first shifted right by `5` bits (divide by `32`), leaving a value of `3`. Next, the value is shifted left by `2` bits (multiply by `4`), giving a value of `12`. This value is added to the base *GICD_ISENABLER_OFFSET*, which is equivelent to *GICD_ISENABLER3*. Subsequently, the original value `99` has the least significant `5` bits masked (modulo `32`), giving a value of `3`. This is used as the shift value for a bit written to the calculated register.
-
-The `__irq_target_cpumask` routine has similar logic to ensure the correct bits are set in the correct *GICD_ITARGETSRn* register.
-
-Back, to [arch/arm64/board/raspberry-pi-4/irq.c](code3/arch/arm64/board/raspberry-pi-4/irq.c), we spin in a loop handling all valid pending interrupt requests for this CPU:
+Back, to [arch/arm64/board/raspberry-pi-4/irq.c](code3/arch/arm64/board/raspberry-pi-4/irq.c), we spin in a loop handling all valid pending interrupt requests for the executing CPU:
 
 ```C
 void handle_irq()
@@ -205,11 +181,13 @@ void handle_irq()
 }
 ```
 
-If we receive a `System Timer 3` interrupt, we will call the `timer_interrupt` function from the timer module and reset the interrupt line before returning. This code masks off the information from the interrupt acknowledgment that is not the id of the IRQ for the switch statement logic. As is suggested by the GIC Documentation, the entire value, however, is written to the *GICD_EOIR*.
+If we receive a `System Timer #3` interrupt, we will call the `timer_interrupt` function from the timer module, reinitialize the timer countdown, and clear the interrupt line before returning. This code masks off the information from the interrupt acknowledgment such that the `irqid` variable contains only the interrupt id. As is suggested by the GIC Documentation, the entire value of `irq`, however, is written to the `GICD_EOIR`. When the `__irq_acknowledge` routine returns a value greater than or equal to 1020, no valid interrupt can be processed, and the loop terminates.
+
+> Note: compare our `handle_irq` function with the one from the Linux Kernel [GIC source](https://github.com/torvalds/linux/blob/v4.20/drivers/irqchip/irq-gic.c#L353).
 
 #### Last Step: Enabling IRQs
 
-Our system has started with all exceptions masked, so we will receive no interrupts until they are unmasked. To help us, there is some architecture-specific low-level interface in [arch/arm64/irq.S](code3/arch/arm64/irq.S):
+As we know, our computer boots with all _DAIF_ bits masked, so we will receive no interrupts until they are enabled. To help us, there is an architecture-specific low-level interface in [arch/arm64/irq.S](code3/arch/arm64/irq.S):
 
 ```asm
 .global __irq_disable
@@ -247,7 +225,7 @@ extern void __wait_for_interrupt();
 #endif
 ```
 
-It is now possible to remove our ugly `DELAY` functionality in [src/cheescake.c](code3/src/cheesecake.c], and use `WAIT_FOR_INTERRUPT` instead:
+It is now possible to remove our ugly `DELAY` functionality in [src/cheescake.c](code3/src/cheesecake.c), and use `WAIT_FOR_INTERRUPT` instead:
 
 ```C
 void cheesecake_main(void)
@@ -266,9 +244,9 @@ void cheesecake_main(void)
 }
 ```
 
-We now have IRQs enabled after initalization, and our `cheesecake_main` while loop waiting for interrupts on each iteration. Building and running should finally lead to a noticable difference in output. The delay between each iteration through the loop should more reliably match approximately `1` second! And, if everything has gone right, it may well look something like:
+We now have IRQs enabled after `init`, and our `cheesecake_main` while loop waiting for interrupts on each iteration. Building and running should finally lead to a noticeable difference in output. The delay between each iteration through the loop should more reliably match approximately one second! And, if everything has gone right, it may well look something like:
 
 ![Raspberry Pi Timer Cheesecake](images/0204_rpi4_timer.png)
 
-*Chapter Top* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Chapter* [Chapters[3]: Processor Initialization and Exceptions](../chapter3/chapter3.md)   
-*Previous Page* [The Interrupt Controller](interrupt-controller.md)  |  *Next Page* [Chapters[3]: Processor Initialization and Exceptions](../chapter3/chapter3.md)
+*Previous Page* [The Interrupt Controller](interrupt-controller.md)  |  *Next Page* [Chapters[3]: Memory Management Unit](../chapter03/chapter3.md)  
+*Chapter Top* [Chapters[2]: Processor Initialization and Exceptions](chapter2.md)  |  *Next Chapter* [Chapters[3]: Memory Management Unit](../chapter03/chapter3.md)
