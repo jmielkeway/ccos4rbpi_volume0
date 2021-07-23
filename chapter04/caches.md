@@ -1,72 +1,11 @@
-*Previous Top* [Chapters[4]: Caches](chapter4.md) | *Next Chapter* [Chapters[5]: SMP](../chapter5/chapter5.md)
-*Previous Page* [Chapters[4]: Caches](chapter4.md) | *Next Page* [Chapters[5]: SMP](../chapter5/chapter5.md)
+*Previous Top* [Chapters[4]: Caches](chapter4.md) | *Next Chapter* [Chapters[5]: SMP](../chapter05/chapter5.md)  
+*Previous Page* [Chapters[4]: Caches](chapter4.md) | *Next Page* [Chapters[5]: SMP](../chapter05/chapter5.md)
 
 ## Enabling the Caches
 
-#### What We're Baking With
-
-```bash
-.                                                                                                                                                                                    [6/5380]
-├── Makefile
-├── arch
-│   └── arm64
-│       ├── allocate.c
-│       ├── barrier.S
-│       ├── board
-│       │   └── raspberry-pi-4
-│       │       ├── config.txt
-│       │       ├── include
-│       │       │   └── board
-│       │       │       ├── bare-metal.h
-│       │       │       ├── devio.h
-│       │       │       ├── gic.h
-│       │       │       └── peripheral.h
-│       │       ├── irq.S
-│       │       ├── irq.c
-│       │       ├── memmap.c
-│       │       ├── mini-uart.S
-│       │       ├── mini-uart.c
-│       │       ├── secure-boot.S
-│       │       ├── timer.S
-│       │       └── timer.c
-│       ├── cache.S
-│       ├── entry.S
-│       ├── error.c
-│       ├── exec
-│       │   └── asm-offsets.c
-│       ├── include
-│       │   └── arch
-│       │       ├── bare-metal.h
-│       │       ├── cache.h
-│       │       ├── irq.h
-│       │       ├── linux-extension.h
-│       │       ├── memory.h
-│       │       ├── page.h
-│       │       ├── process.h
-│       │       └── prot.h
-│       ├── irq.S
-│       ├── linker.template
-│       ├── main.S
-│       ├── memset.S
-│       └── sync.c
-├── build.sh
-├── cheesecake.conf
-├── config
-│   └── config.py
-├── include
-│   └── cake
-│       ├── log.h
-│       └── types.h
-└── src
-    ├── cheesecake.c
-    └── log.c
-```
-
-There are no new modules or sources. We will be making small adjustments to what we already have.
-
 #### Invalidating the Entire Cache to the Point of Coherency
 
-A big phrase with respect to chacing in coherency. The Raspberry Pi 4 has four CPU cores, each with two L1-caches, one for data one for instructions. There is also a shared, unified L2-cache used by all of the CPUs. We would like all of these caches to be _coherent_ with each other - in other words, we want them all to give the same answer when we read, and effectively broadcast updates to one another when we write. ARM architectures that use caches and reference virtual define a _Point of Coherency_, or _PoC_. This is the point at which all observers that can access memory are guaranteed to see the same copy of a memory location. Typically, this is the main external system memory, and this is true for our Raspberry Pi 4 device. The ARM Programmer's Guide section on [Cache Maintenence](https://developer.arm.com/documentation/den0024/a/Caches/Cache-maintenance) provides a generic routine for invalidating the entire cache to the _PoC_, a task we take care to perform on startup, to be certain there are no unsavory reset values stuck in the caches. We take ARM's example code, and stick it in [arch/arm64/board/raspberry-pi-4/secure-boot.S](code0/arch/arm64/board/raspberry-pi-4/secure-boot.S):
+A key concept with respect to caching is coherency. The Raspberry Pi 4 has four CPU cores, each with two L1-caches, one for data one for instructions. There is also a shared, unified L2-cache used by all of the CPUs. We would like all of these caches to be _coherent_ with each other - in other words, we want them all to give the same answer when we read, and effectively broadcast updates to one another when we write. We want them all to share the same view of the memory system. ARM architectures that use caches and reference virtual addresses define a _Point of Coherency_, or _PoC_. This is the point at which all observers that can access memory are guaranteed to see the same copy of a memory location. Typically, the _PoC_ is the main external system memory, also true for our Raspberry Pi 4 device. The ARM Programmer's Guide section on [Cache Maintenence](https://developer.arm.com/documentation/den0024/a/Caches/Cache-maintenance) provides a generic routine for invalidating the entire cache to the _PoC_, a task we take care to perform on startup, to be certain there are no unsavory reset values stuck in the caches. We take ARM's example code, and bake it into [arch/arm64/board/raspberry-pi-4/secure-boot.S](code0/arch/arm64/board/raspberry-pi-4/secure-boot.S):
 
 ```asm
 __invalidate_caches:
@@ -116,7 +55,7 @@ __invalidate_caches:
 
 #### Flipping the Cache Switch
 
-A few adjustments to cachability attributes in [arch/arm64/include/arch/page.h](code0/arch/arm64/include/arch/page.h) - from caching disabled to caching enabled - will set us up nicely. For example, we change the `NORMAL_INIT_MMU` flags to use `MT_NORMAL` attributes of `MAIR_EL1`, instead of the previously used `MT_NORMAL_NC`:
+A few adjustments to cacheability attributes in [arch/arm64/include/arch/page.h](code0/arch/arm64/include/arch/page.h) - from caching disabled to caching enabled - will help us forward. For example, we change the `NORMAL_INIT_MMU` flags to use `MT_NORMAL` attributes of `MAIR_EL1`, instead of the previously configured `MT_NORMAL_NC`:
 
 ```C
 #define NORMAL_INIT_MMU_FLAGS       PAGE_TABLE_AF | \
@@ -135,7 +74,7 @@ A few adjustments to cachability attributes in [arch/arm64/include/arch/page.h](
                                     MAIR(0b10111011, MT_NORMAL_WT)
 ```
 
-We have also made some updates to table-walk cachability in `TCR_EL1`. We conclude by enabling the caches in [arch/arm64/main.S](code0/arch/arm64/main.S). Before setting the bits in `SCTLR_EL1`, there are two subtle cache cleaning operations we perform, both in the `__create_page_tables` routine. We clean the cache entries for the page tables, once before populating them, and once after:
+We have also made some updates to table-walk cacheability in `TCR_EL1`. We conclude by enabling the caches in [arch/arm64/main.S](code0/arch/arm64/main.S). Before setting the bits in `SCTLR_EL1`, there are two cache cleaning operations we perform, both in the `__create_page_tables` routine. We clean the cache entries for the page tables, once before populating them, and once after:
 
 ```asm
 __create_page_tables:
@@ -169,9 +108,9 @@ __create_page_tables:
     ret
 ```
 
-We invalidate the cache before populating the page tables for the same reason we do so in the `secure-boot` code. We do not want to make a reference to a cache line that is valid and load an inadvertant value. While we already took care of this during the `secure-boot`, the architecture should not assume this has already happened at the board level.
+We invalidate the cache before populating the page tables for the same reason we do so in the `secure-boot` code. We do not want to make a reference to a stale cache line from reset and load an inadvertent value. While we already took care to completely clean the caches is the `secure-boot`, the architecture should not assume this has already happened at the board level.
 
-Because the MMU is still off, and caches are not enabled at this point, even though we set our memory attributes are configured as cachable, all memory accesses are still non-cacheable. This means there could be speculatively loaded cachelines after the page tables are populated. For this reason, we invalidate the caches once more. The code that does the invaldation work is located in [arch/arm64/cache.S](code0/arch/arm64/cache.S):
+Because the MMU is still off and caches are not yet enabled at this point all memory accesses are still non-cacheable, and cacheability configuration is ignored. There could be speculatively loaded cache lines after the page tables are populated. For this reason, we invalidate the caches once more. The code that does the invalidation work is located in [arch/arm64/cache.S](code0/arch/arm64/cache.S):
 
 ```asm
 .globl __invalidate_dcache_range
@@ -202,6 +141,8 @@ __invalidate_dcache_range:
     ret
 ```
 
+> Note: see comment in Linux `__create_page_tables` routine about [cache cleaning](https://github.com/torvalds/linux/blob/v4.20/arch/arm64/kernel/head.S#L390).
+
 Back in `arch/arch64/main.S`, the caches are enabled at the same time as the MMU by setting the `CACHE_C_FLAG` and `CACHE_I_FLAG` in the `__turnon_mmu` routine:
 
 ```asm
@@ -216,5 +157,5 @@ After jumping though these hoops, building, and running, hopefully you see somet
 
 ![Raspberry Pi Cache Cheesecake](images/0401_rpi4_caches.png)
 
-*Previous Top* [Chapters[4]: Caches](chapter4.md) | *Next Chapter* [Chapters[5]: SMP](../chapter5/chapter5.md)
-*Previous Page* [Chapters[4]: Caches](chapter4.md) | *Next Page* [Chapters[5]: SMP](../chapter5/chapter5.md)
+*Previous Page* [Chapters[4]: Caches](chapter4.md) | *Next Page* [Chapters[5]: SMP](../chapter05/chapter5.md)  
+*Previous Top* [Chapters[4]: Caches](chapter4.md) | *Next Chapter* [Chapters[5]: SMP](../chapter05/chapter5.md)
