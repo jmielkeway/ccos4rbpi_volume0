@@ -1,73 +1,16 @@
-*Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter4/chapter4.md)  
+*Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter04/chapter4.md)  
 *Previous Page*  [Establishing Boot Tables](boot-tables.md) |  *Next Page* [Turning on the MMU](mmu.md)
 
 ## Linear Mapping the Entire Physical Address Space ([chapter3/code1](code1))
 
-#### What We're Baking With
-```bash
-.
-├── Makefile
-├── arch
-│   └── arm64
-│       ├── allocate.c
-│       ├── barrier.S
-│       ├── board
-│       │   └── raspberry-pi-4
-│       │       ├── config.txt
-│       │       ├── include
-│       │       │   └── board
-│       │       │       ├── bare-metal.h
-│       │       │       ├── devio.h
-│       │       │       ├── gic.h
-│       │       │       └── peripheral.h
-│       │       ├── irq.S
-│       │       ├── irq.c
-│       │       ├── memmap.c
-│       │       ├── mini-uart.S
-│       │       ├── mini-uart.c
-│       │       ├── secure-boot.S
-│       │       ├── timer.S
-│       │       └── timer.c
-│       ├── entry.S
-│       ├── error.c
-│       ├── exec
-│       │   └── asm-offsets.c
-│       ├── include
-│       │   └── arch
-│       │       ├── bare-metal.h
-│       │       ├── irq.h
-│       │       ├── linux-extension.h
-│       │       ├── memory.h
-│       │       ├── page.h
-│       │       ├── process.h
-│       │       └── prot.h
-│       ├── irq.S
-│       ├── linker.template
-│       ├── main.S
-│       └── memset.S
-├── build.sh
-├── cheesecake.conf
-├── config
-│   └── config.py
-├── include
-│   └── cake
-│       ├── log.h
-│       └── types.h
-└── src
-    ├── cheesecake.c
-    └── log.c
-```
-
-In this section, we add an architecture-specific `allocate.c` module and a board-specific `memmap.c` module to faciliate the kernel's mapping of the entire physical address space.
-
 #### The Raspberry Pi 4's Physical Address Space
 
-In the previous section, we did the inital setup for the CheesecakeOS kernel's PGD. However, the only addresses that are mapped right now are in the kernel image. Other addresses are not yet mapped, such as the UART and GIC IO registers. Turning on the MMU, and accessing those addresses before they are properly mapped would cause a translation fault. We want the kernel to be aware of the entire physical address map. This will allow the kernel to manage all of the system's RAM for free memory allocation purposes, and communicate with all peripherals.
+In the previous slice, we did the initial setup for the CheesecakeOS kernel's _PGD_. However, the only addresses that are mapped right now are in the kernel image. Other addresses are not yet mapped, such as the mini UART and GIC I/O registers. Turning on the MMU and accessing those registers before they are mapped will cause an as-yet-unhandled translation fault. We want the kernel to be aware of the entire physical address map. This will allow the kernel to manage all of the system's RAM for free memory allocation purposes, and communicate with all peripherals.
 
-The Raspberry Pi 4's physical address map is described in the beginning of the [BCM2711 ARM Peripherals](https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2711/rpi_DATA_2711_1p0.pdf) Guide. In our `config.txt` file, we configured `arm_peri_high`=`1`. The advantage of this configuration is that all Raspberry Pi 4s, regardless of amount of RAM memory (2GB, 4GB, 8GB), share the same memory map. The amount of memory supported by the build is a configuration option in [chessecake.conf](code1/cheesecake.conf). For the tutorial, we select 4GB, but you can choose the value for your specific Pi:
+The Raspberry Pi 4's physical address map is described in the beginning of the [BCM2711 ARM Peripherals](https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2711/rpi_DATA_2711_1p0.pdf) guide. In our `config.txt` file, we configured `arm_peri_high`=`1`. The advantage of this configuration is all Raspberry Pi 4s, regardless of RAM capacity (2GB, 4GB, 8GB), share the same memory map. The amount of memory supported by the build is a configuration option in [chessecake.conf](code1/cheesecake.conf). For the tutorial, we select 4GB, but you can choose the value for your specific Pi:
 
 ```bash
-cat cheesecake.conf
+ccos4rbpi:~$ cat cheesecake.conf
 MEMORY_SIZE=MEMORY_SIZE_4GB
 PAGE_SHIFT=12
 TEXT_OFFSET=0
@@ -77,7 +20,7 @@ VA_BITS=48
 In order to build a memory map the kernel can use, two new structures are introduced in [arch/arm64/include/arch/memory.h](code1/arch/arm64/include/arch/memory.h):
 
 ```C
-bare-metal.h"
+#include "bare-metal.h"
 
 #define MEM_TYPE_RESERVED               BIT_SET(0)
 #define MEM_TYPE_SDRAM                  BIT_SET(1)
@@ -109,7 +52,7 @@ struct address_map {
 #endif
 ```
 
-The structures are generic to the `arm64` architecture, allowing for multiple memory-map support, extending beyond just the Raspberry Pi 4. The memory map we will use and the function to export it to the architecture are both defined in [arch/arm64/board/raspberry-pi-4/memmap.c](code1/arch/arm64/board/raspberry-pi-4/memmap.c):
+The structures are generic to the `arm64` architecture, foster support for memory maps extending beyond the Raspberry Pi 4. The memory map we will use and the function to export it to the architecture are both defined in [arch/arm64/board/raspberry-pi-4/memmap.c](code1/arch/arm64/board/raspberry-pi-4/memmap.c):
 
 ```C
 #define MEMORY_SIZE_2GB                 0x080000000
@@ -257,18 +200,13 @@ struct address_map *addrmap()
     memory_map[4].size -= (((unsigned long) _end) + SECTION_SIZE);
     return &raspberry_pi_4_address_map;
 }
-
 ```
 
-The first few regions have variable boundries, which are filled in by a combination of the `_end_kernel_text`, `_end_permenant_image`, and `_end` linker address variables, along with the `END_OF_USABLE_DRAM` macro, which takes on the value, in bytes, of the RAM configuration of our Raspberry Pi 4.
-
-
-*Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter4/chapter4.md)  
-*Previous Page*  [Establishing Boot Tables](boot-tables.md) |  *Next Page* [Turning on the MMU](mmu.md)
+The first few regions have variable boundaries, which are filled in by a combination of the `_end_kernel_text`, `_end_permenant_image`, and `_end` linker address variables, along with the `END_OF_USABLE_DRAM` macro, which takes on the value, in bytes, of the RAM configuration of our Raspberry Pi 4.
 
 #### The Baby-Boot Allocator
 
-When setting up the inital boot tables, we statically allocated three pages - a one PGD, one PUD, and one PMD. This setup could map the first 1GB of memory, where the kernel image is loaded. The entire address space is larger than 1GB, however. The Raspberry Pi 4 memory map is 35 bits, or 32GB. Since we want to support multiple memory maps, we need to be able to dynamically allocate some memory to fill out the kernel's view of the address map. We create a baby-boot alloator in order to do so. The allocator structures and interface are setup in [arch/arm64/allocate.c](code1/arch/arm64/allocate.c):
+When setting up the initial boot tables, we statically allocated three pages - one _PGD_, one _PUD_, and one _PMD_. This setup has allowed us to map up to 1GB of memory, beginning from where the kernel image is loaded. Our kernel is smaller than 1GB, but the  entire address space is larger. The Raspberry Pi 4 memory map is 35 bits, or 32GB. Since we want to support multiple memory maps, we need to be able to dynamically allocate some memory to fill out the kernel's view of the address map. We create a baby-boot allocator in order to do so. The allocator structures and interface are setup in [arch/arm64/allocate.c](code1/arch/arm64/allocate.c):
 
 ```C
 #define BABY_BOOT_SIZE  NUM_ENTRIES_PER_TABLE
@@ -287,7 +225,7 @@ unsigned long alloc_baby_boot_pages(unsigned int numpages)
 }
 ```
 
-The baby-boot allocator, true to its name is as sweet as a baby. Simply, 512 pointers, the number that fit in a page, are statically allocated in the kernel image. Each pointer is itself a pointer to a page of memory. Each page can act as another PMD in our PGD, capable of mapping 1GB. There is no problem covering the complete memory map of a system like the Raspberry Pi 4, and similar small systems. Assuming the pointers are to sequential pages, the baby boot allocator has 2MB of memory to work with. This is exactly the amount of memory that was reserved in our Raspberry Pi 4 memory map that had the `MEM_FLAGS_BABY_BOOT` flag set. We placed it right after the end of the kernel image:
+Simply, 512 pointers, the number that fit in a page, are statically allocated in the kernel image. Each pointer in the page is itself a pointer to a page of memory. Each page can act as another _PMD_ in our _PGD_, capable of mapping 1GB. With up to 512 pages available for allocation, there is no problem covering the complete memory map of a Raspberry Pi 4, or similar small systems. Assuming the pointers are to sequential pages, the baby boot allocator has 2MB of memory to work with. This is exactly the amount of memory that was reserved in our Raspberry Pi 4 memory map that had the `MEM_FLAGS_BABY_BOOT` flag set. We placed it right after the end of the kernel image:
 
 ```C
     struct address_region addr_region_three = {
@@ -298,7 +236,7 @@ The baby-boot allocator, true to its name is as sweet as a baby. Simply, 512 poi
     };
 ```
 
-The `paging_init` funtion is then responsible for
+The `paging_init` function is then responsible for:
 
 1. Initalizing the baby-boot allocator structures
 2. Section-mapping the whole address map
@@ -322,7 +260,7 @@ void paging_init()
 }
 ```
 
-The `paging_init` function loops through the `struct address region`s in the address map to find the one with the `MEM_FLAGS_BABY_BOOT` flag set. Then, initalizes the baby-boot array:
+The `paging_init` function loops through the `struct address region`s in the address map to find the one with the `MEM_FLAGS_BABY_BOOT` flag set. Then, initializes the baby-boot array:
 
 ```C
 static void initialize_baby_boot_allocator(unsigned long start, unsigned long end)
@@ -345,7 +283,7 @@ static void initialize_baby_boot_allocator(unsigned long start, unsigned long en
 }
 ```
 
-Once the allocator setup is complete, the `paging_init` function can make use of the allocator, setting up the mappings for each region:
+Once the allocator setup is complete, the `paging_init` function can make use of the allocator, setting up the mappings for each region with a call to `linear_map_region`:
 
 ```C
 static unsigned long linear_map_prot_flags(unsigned long memtype, unsigned long flags)
@@ -399,12 +337,11 @@ static void linear_map_section(unsigned long start, unsigned long flags)
     pud_virt_addr = (unsigned long *) pud_phys_addr;
 ```
 
-The first step is to calculate the address of the PUD:
+The first step is to calculate the address of the _PUD_:
 
-1. Calculate the index of start into the PGD
-2. Retain the value of that index
-3. Mask away bits 63-48 and 11-0 with the `RAW_PAGE_TABLE_ADDR_MASK`, leaving only the location of the PUD
-4. Cast that unsigned long to a pointer to an unsigned long.
+1. Calculate and store the index of the `start` argument address into the _PGD_
+2. Mask to zero bits 63-48 and 11-0 with the `RAW_PAGE_TABLE_ADDR_MASK`, leaving only the page-aligned location of the _PUD_
+3. Cast that unsigned long to a pointer to an unsigned long
 
 ```C
     pud_index = (start >> PUD_SHIFT) & (TABLE_INDEX_MASK);
@@ -413,7 +350,7 @@ The first step is to calculate the address of the PUD:
     pmd_virt_addr = (unsigned long *) pmd_phys_addr;
 ```
 
-The same algorithm is used to calculate the address of the PMD.
+The same algorithm is used to calculate the address of the _PMD_.
 
 ```C
     if(!pmd_phys_addr) {
@@ -424,10 +361,10 @@ The same algorithm is used to calculate the address of the PMD.
     }
 ```
 
-If the PMD is not a valid address, as in, it is equal to the value 0, we allocate a baby-boot page and log that we have done so. Recall two points:
+If the _PMD_ is not a valid address, as in, it is equal to the value zero, we allocate a baby-boot page and log that we have done so. Recall two points:
 
-1. The PUD page was initalized to all 0s when setting up the boot table, so checking the PMD pointers in said PMD page for a falsey value is a valid check
-2. The first PMD page representing the first 1GB of memory is already allocated, so no baby-boot page is allocated for the first 1GB
+1. The _PUD_ page was initialized to all 0s when setting up the boot table, so checking the _PMD_ pointers in said _PUD_ page for a falsy value is a valid check
+2. The first _PMD_ page covering the first 1GB of memory is already allocated, so no baby-boot page is allocated for the first 1GB
 
 ```C
     pmd_index = (start >> PMD_SHIFT) & (TABLE_INDEX_MASK);
@@ -438,7 +375,7 @@ If the PMD is not a valid address, as in, it is equal to the value 0, we allocat
     __dsb_sy();
 ```
 
-Finally, the index into the PMD page, which may have just been allocated, is used to store the physical address `start` that was passed into the function. This address is `or`ed logically with the protection flags for the section. These flags are defined in [arch/arm64/include/arch/prot.h](code1/arch/arm64/include/arch/prot.h):
+Finally, the index into the _PMD_ page, which may have just been allocated, is used to store the physical address `start` passed into the function. This address is `orr`ed logically with the protection flags for the section. These flags are defined in [arch/arm64/include/arch/prot.h](code1/arch/arm64/include/arch/prot.h):
 
 ```C
 #ifndef _ARCH_PROT_H
@@ -489,13 +426,15 @@ Finally, the index into the PMD page, which may have just been allocated, is use
 #define SECT_KERNEL_ROX     ((PROT_SECT_NORMAL | PMD_SECT_RDONLY) & (~(PMD_SECT_PXN)))
 
 #endif
-
 ```
 
-For example, the first 2MB of memory are contained within a region flagged with `MEM_FLAGS_CAKE_TEXT`. For this region, we use `SECT_KERNEL_ROX`. For this type of memory, we carefully clear the `PXN` (Priveledged Execute Never) bit, and marked it as read-only.
+For example, the first 2MB of memory are contained within a region flagged with `MEM_FLAGS_CAKE_TEXT`. For this region, we use `SECT_KERNEL_ROX`. For this type of memory, we carefully clear the `PXN` (Privileged Execute Never) bit, and mark as read-only.
 
 #### Linear Mapping
 
-When the `paging_init` function completes, the entire physical address space will be _linear mapped_ or _flat mapped_. These terms mean there is a constant offset between a virtual address and a physical address. So far, in this specific case, what we have done is _identity mapping_. As noted, identity mapping is a speical case of linear mapping where the constant offset between virtual and physical addresses is 0 - the two addresses are equal. This will change in the next section as we ultimately enable the Memory Mangement Unit. We will want all kernel address accesses to have 0xFFFF in the sixteen moste signigicant bits - not the case currently. Before we get there, let's serve up the lastest version of CheesecakeOS - chilled! If everything has gone right you should see something like:
+When the `paging_init` function completes, the entire physical address space will be _linear mapped_ or _flat mapped_. These terms mean there is a constant offset between a virtual address and a physical address. So far, in this specific case, what we have done is _identity mapping_. As noted, identity mapping is a special case of linear mapping where the constant offset between virtual and physical addresses is zero - the two addresses are equal. This will change in the next section as we ultimately enable the Memory Management Unit. We will want all kernel address accesses to have 0xFFFF in the sixteen most significant bits - not the case currently. Before we get there, let's serve up the latest build of CheesecakeOS - chilled! If everything has gone right you should see something like:
 
 ![Raspberry Pi Linear Cheesecake](images/0302_rpi4_linear.png)
+
+*Previous Page*  [Establishing Boot Tables](boot-tables.md) |  *Next Page* [Turning on the MMU](mmu.md)  
+*Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter04/chapter4.md)
