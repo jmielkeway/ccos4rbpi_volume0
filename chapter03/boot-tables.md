@@ -1,63 +1,11 @@
-*Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter4/chapter4.md)  
+*Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter04/chapter4.md)  
 *Previous Page*  [ARM Page Tables](arm-page-tables.md) |  *Next Page* [Linear Mapping the Entire Physical Address Space](linear-mapping.md)
 
 ## Establishing Boot Tables([chapter3/code0](code0))
 
-#### What We're Baking With
-```bash
-ccos4rbpi:~$ tree
-.
-├── Makefile
-├── arch
-│   └── arm64
-│       ├── board
-│       │   └── raspberry-pi-4
-│       │       ├── config.txt
-│       │       ├── include
-│       │       │   └── board
-│       │       │       ├── bare-metal.h
-│       │       │       ├── devio.h
-│       │       │       ├── gic.h
-│       │       │       └── peripheral.h
-│       │       ├── irq.S
-│       │       ├── irq.c
-│       │       ├── mini-uart.S
-│       │       ├── mini-uart.c
-│       │       ├── secure-boot.S
-│       │       ├── timer.S
-│       │       └── timer.c
-│       ├── entry.S
-│       ├── error.c
-│       ├── exec
-│       │   └── asm-offsets.c
-│       ├── include
-│       │   └── arch
-│       │       ├── bare-metal.h
-│       │       ├── irq.h
-│       │       ├── linux-extension.h
-│       │       ├── page.h
-│       │       └── process.h
-│       ├── irq.S
-│       ├── linker.template
-│       └── main.S
-├── build.sh
-├── cheesecake.conf
-├── config
-│   └── config.py
-├── include
-│   └── cake
-│       ├── log.h
-│       └── types.h
-└── src
-    ├── cheesecake.c
-    └── log.c
-```
-
-Our infantile operating system is starting to get some meat on its bones! In this section, we have added a configurable aspect to the build, increased the capabilities of the linker script, and created boot-time page tables that will ultimately allow us to enable the Mermory Mangement Unit.
-
 #### CheesecakeOS Configured Build System
 
-The CheesecakeOS build system is significantly simpler than KBuild, the Linux build system. For our needs we have created a configuration file of `key`=`value` pairs in [cheesecake.conf](code0/cheesecake.conf):
+The CheesecakeOS build system is significantly simpler than KBuild, the Linux build system. For our needs we create a configuration file of `key`=`value` pairs in [cheesecake.conf](code0/cheesecake.conf):
 
 ```bash
 ccos4rbpi:~$ cat cheesecake.conf
@@ -66,7 +14,7 @@ TEXT_OFFSET=0
 VA_BITS=48
 ```
 
-These configurations are exported to the build of the kernel through a host program that creates a config header file. The source for the header file is located in [config/config.py](code0/config/config.py):
+Configurations are exported to the build through a generated config header file. The source for the host program is located in [config/config.py](code0/config/config.py):
 
 ```python
 #!/usr/bin/env python
@@ -81,7 +29,7 @@ for line in sys.stdin:
 print('#endif')
 ```
 
-This setup allows us to easily set or adjust compile-time constants as needed. The `PAGE_SHIFT` variable is immediately put to good use in the [arch/arm64/include/arch/page.h](code0/arch/arm64/include/arch/page.h) header:
+This setup allows us to easily configure global compile-time constants as needed. The `config.h` header can be used anywhere, in architecture-specific or generic modules, without degrading the software design. The `PAGE_SHIFT` variable is immediately put to good use in the [arch/arm64/include/arch/page.h](code0/arch/arm64/include/arch/page.h) header:
 
 ```C
 #ifndef _ARCH_PAGE_H
@@ -105,6 +53,8 @@ This setup allows us to easily set or adjust compile-time constants as needed. T
 #endif
 ```
 
+`PAGE_SHIFT` determines the size of a page. A twelve-bit shift means 4KB pages. There are four page table levels and 512 entries per table.
+
 #### Flexing with the Linker Script
 
 The linker script, now a template in [arch/arm64/linker.template](code0/arch/arm64/linker.template) has taken on new responsibilities:
@@ -118,7 +68,7 @@ The linker script, now a template in [arch/arm64/linker.template](code0/arch/arm
 #define PAGE_GLOBAL_DIR_SIZE        (PAGE_SIZE * (PAGE_TABLE_LEVELS - 1))
 ```
 
-The `arch/page.h` is included in order to used the `PAGE_TABLE_LEVELS` macro - set equal to the number of bytes for three pages - 12KB.
+The `arch/page.h` is included in order to use the `PAGE_TABLE_LEVELS` macro to calculate the space needed for the bootstrapping translation tables - set equal to the number of bytes for three pages: 12KB.
 
 ```C
 OUTPUT_ARCH(aarch64)
@@ -139,14 +89,14 @@ SECTIONS
     }
 ```
 
-A special `.idmap.text` section has been created. This section will have code that is _idmapped_ - in other words the code in this section will be setup in a page table such that the virual address is equal to the physical address. 
+A special `.idmap.text` section now appears. This section contains instructions in memory that are _id-mapped_ . In other words the code in this section will be setup in a translation table such that the virtual address resolves to equal the physical address. 
 
 ```C
     . = ALIGN(SECTION_SIZE);
     _kernel_text_end = .;
 ```
 
-A _section_ is the block size that is one level above a page, in our case 2MB. It is the size of our blocks when we leave out one level of translation, using three levels instead of two. Our mappings for kernel page tables will use these section-based mappings.
+A _section_ is the size of a block one translation level above a page. In our case 2MB. It is also the block-size when we leave out one level of translation, using three levels instead of four. Our page table mappings for the kernel page tables will use section mappings, which is why we reserved only three pages worth of space for the initial tables.
 
 ```C
     .rodata : {
@@ -161,7 +111,7 @@ A _section_ is the block size that is one level above a page, in our case 2MB. I
     end_page_global_dir = .;
 ```
 
-At the end of the `.data` section, and before the `.bss` section, we statically allocate 12KB of space alligned to the size of a page. This represents 3 pages, 1 PGD, 1 PUD, and 1 PMD. Each entry in the PMD, recall, can map 2MB blocks - our math seems to be working so far! The head of this space will ultimately be assigned as the base register for `TTBR1_EL1`.
+At the end of the `.data` section, and before the `.bss` section, we statically allocate 12KB of space aligned to the size of a page. The space is bounded by the `page_global_dir` and `end_page_global_dir` addresses. There is room for one _PGD_, one _PUD_, and one _PMD_. Each entry in the _PMD_, recall, can map 2MB blocks - our math seems to be working so far! The base address, `page_global_dir`,  will ultimately be assigned to `TTBR1_EL1`.
 
 ```C
     . = ALIGN(0x8);
@@ -184,9 +134,9 @@ At the end of the `.data` section, and before the `.bss` section, we statically 
 }
 ```
 
-After the `.bss` section, we allocate space for the initial stack for `CPU 0`. We also create a overwritable area where we create space for the identity mapping page tables, also with three pages. After the initaliztion is finished, this space can be returned to our memory allocated to be repurposed otherwise.
+After the `.bss` section, we allocate space for the initial stack for CPU 0. We also reserve an overwritable storage area. Here we create space for the identity mapping page tables, also with three pages. When no longer needed, the space can be returned to our memory allocator to service other allocation requests.
 
-This template is made possible by a trick where we use the `C Preprocessor` to process - but not compile - our template and place the resolution in the `.build` directory for further use by make. The magic can be found in the [Makefile](code0/Makefile):
+This template is made possible by a trick where we use the _C Preprocessor_ to process - but not compile - our template and place the resolution in the `.build` directory for further use by make. The magic can be found in the [Makefile](code0/Makefile):
 
 ```make
 $(BUILD_DIR)/linker.ld: $(ARCH_SRC_DIR)/linker.template
@@ -215,11 +165,13 @@ If you were to build the source at this moment and view the memory map in `.buil
 0000000000600000 B _end
 ```
 
-Thus, our alignment and sizes is looking correct so far.
+Our alignment and sizes are looking as expected.
+
+> Note: compare our linker page table setup to Linux in their [arm64 linker template](https://github.com/torvalds/linux/blob/v4.20/arch/arm64/kernel/vmlinux.lds.S#L141).
 
 #### Loading the Boot Tables
 
-In order to facilitate boot tables, additional useful macros are provied in [arch/arm64/include/arch/page.h](code0/arch/arm64/include/arch/page.h):
+In order to facilitate boot tables, additional useful macros are defined in [arch/arm64/include/arch/page.h](code0/arch/arm64/include/arch/page.h):
 
 ```C
 #define PAGE_TABLE_AF               BIT_SET(10)
@@ -280,7 +232,7 @@ In order to facilitate boot tables, additional useful macros are provied in [arc
                                     TCR_AS
 ```
 
-Enough has been put in place to allow us to start creating our first page tables for use by the kernel. The work happens in [arch/arm64/main.S](code0/arch/arm64/main.S) through a series of new macros and routines:
+Enough scaffolding has been put in place to allow us to create our first page tables for use by the kernel. The work happens in [arch/arm64/main.S](code0/arch/arm64/main.S) with a series of new macros and routines:
 
 ```asm
 #include "config/config.h"
@@ -305,7 +257,7 @@ __create_page_tables:
     __ZERO_PAGE_TABLE   page_global_dir, end_page_global_dir
 ```
 
-The `__create_page_tables` routine begins by iterating through the entire 12KB of our `page_global_dir`, and `page_idmap_dir` page tables and zeroing them, one cacheline at a time. This is a safe operation, as we know, a priori, the boundries and alignment of the page tables.
+The `__create_page_tables` routine begins by iterating through the entire 12KB of our `page_global_dir` and `page_idmap_dir` page tables, zeroing them 64 bytes at a time. We know, a priori, the boundaries and alignment of the page tables, so `adrp` is safe to use, and there is no need for additional alignment masking.
 
 ```
     .macro __CREATE_TABLE_ENTRY, tbl, virt, shift, num, tmp1, tmp2
@@ -328,27 +280,28 @@ The `__create_page_tables` routine begins by iterating through the entire 12KB o
     __CREATE_PGD        x0, x3, x5, x6
 ```
 
-Next, the `__create_page_tables` routine places the value of `NORMAL_INIT_MMU_FLAGS` into `x7` for later use, and creates the PGD for the identity mapping table. For now, the init flags indicate that memory is non-cacheable. The caches are currently disabled, as we left them off when entering `EL11. We will update when we enable the caches. For the `__CREATE_PGD` macro here, these values are used:
+Next, the `__create_page_tables` routine places the value of `NORMAL_INIT_MMU_FLAGS` into `x7` for later use, and creates the _PGD_ for the identity mapping table. For now, the init flags configure the memory as non-cacheable (`MT_NORMAL_NC`). The caches are currently disabled, as we left those bits unset when entering `EL1`. We will update when we enable the caches in [Chapter Four](../chapter04/chapter4.md). 
 
+For this first invocation of the  `__CREATE_PGD` macro, these values are used:
 - `tbl`, or `x0`, is `page_idmap_dir`, we saw above from the kernel memory map that this is address `0x400000`
 - `virt`, or `x3`, is `__idmap_text_start`, we saw above from the kernel memory map that this is address `0x1000`
 - `x5` and `x6` are used as temporary scratch registers that can be clobbered, and are passed along to the `__CREATE_TABLE_ENTRY` macro
 
-The `__CREATE_PGD` macro delegates all interesting work to the `__CREATE_TABLE_ENTRY` macro, which is uses twice, once with the `PGD_SHIFT`, once with `PUD_SHIFT`. In both cases, 512 is the number of entries per table, as previously discussed (4KB / 8-byte pointers).
+The `__CREATE_PGD` macro delegates all interesting work to the `__CREATE_TABLE_ENTRY` macro, which it uses twice, once with the `PGD_SHIFT`, once with `PUD_SHIFT`. In both cases, 512 is the number of entries per table, as previously discussed (4KB / 8-byte pointers).
 
-The `__CREATE_TABLE_ENTRY` macro begins by calculating the index for the PGD or PUD level, by logically shifting to the right by the correct shift amound, and the masking off bits above the nine least significant bits. This value is saved in one of the temporary registers. The other temporary register stores value to be placed in the index - the PUD address in the case of working with the PGD, or the PMD is case of working with the PUD. Both of these values are `orr`ed with 0x3, the value of `PAGE_TABLE_TABLE`, to indicate they are valid entries and that they point to tables instead of blocks. The last line of the macro increments the value of the table address stored in `x1` so the next level can be setup. We know, for example, after setting up the PGD that:
+The `__CREATE_TABLE_ENTRY` macro begins by calculating the index for the _PGD_ or _PUD_, logically shifting the virtual address to the right by the correct shift amount, then masking off all but the nine least significant bits. For the _PGD_, the correct shift amount is 39 bits, as bits 47-39 are the index. For the _PUD_, 30 is the shift amount. The index value then is saved in one of the temporary registers. The other temporary register stores the address to be placed in the index - the _PUD_ when inserting into the _PGD_, or the _PMD_ when inserting into the _PUD_. The next-level address is `orr`ed with 0x3, the value of `PAGE_TABLE_TABLE`, because they are valid entries pointing to tables instead of blocks. The last line of the macro increments the value of the table address stored in `x0`. We know after setting up the _PGD_ that:
 
-- The PGD index was ((`0x1000` >> 39) & 0x1FF), or 0
-- `tmp2` was ((`0x400000` + 0x1000) | 0x3) or 0x401003
-- The value stored in (`0x400000` + (0 << 3)) is 0x401003
-- `tbl` or `x0` is now equal to `0x400000` + 0x1000, `0x401000`
+- The _PGD_ index was ((0x1000 >> 39) & 0x1FF), or 0
+- `tmp2` was ((0x400000 + 0x1000) | 0x3) or 0x401003
+- The value stored in (0x400000 + (0 << 3)) is 0x401003
+- `tbl` or `x0` is now equal to 0x400000 + 0x1000, 0x401000
 
 After setting up the PUD:
 
-- The PUD index was ((`0x1000` >> 30) & 0x1FF), or 0
-- `tmp2` was ((`0x401000` + 0x1000) | 0x3) or 0x402003
-- The value stored in (`0x401000` + (0 << 3)) is 0x402003
-- `tbl` or `x0` is now equal to `0x401000` + 0x1000, `0x402000`
+- The PUD index was ((0x1000 >> 30) & 0x1FF), or 0
+- `tmp2` was ((0x401000 + 0x1000) | 0x3) or 0x402003
+- The value stored in (0x401000 + (0 << 3)) is 0x402003
+- `tbl` or `x0` is now equal to 0x401000 + 0x1000, 0x402000
 
 Continuing with our analysis of the `__create_page_tables` routine:
 
@@ -386,25 +339,27 @@ Continuing with our analysis of the `__create_page_tables` routine:
     ret
 ```
 
-Having setup the PGD and PUD for the identity mapping table, the `__BLOCK_MAP` macro is used to setup the PMD with our `2MB` blocks. The values used as inputs into the macro in this case are:
+Having inserted the next translation level into the _PGD_ and _PUD_ of our identity mapping translation table, the `__BLOCK_MAP` macro is used to initialize the first few 2MB blocks of our kernel into the _PMD_. The values used as inputs into the macro:
 
-- `tbl`, or `x0` is `0x402000`, the value set after running the `__CREATE_TABLE_ENTRY` macros
-- `flags` or `x7` is `NORMAL_INIT_MMU_FLAGS`, which will be `orr`ed to indicate entries are blocks, inner sharable, accessable, valid, etc.
-- `phys` or `x3` is `0x1000`
-- `start` or `x5` is the virtual address we are mapping, `0x1000`, and it should be the same as the physical address as this is the identity mapping table
-- `end` or `x6` is also `0x1000`, the value of `_idmap_text_end`, as there is nothing yet in the `.idmap.text` section
+- `tbl`, or `x0` is 0x402000, the value set after running the `__CREATE_TABLE_ENTRY` macros
+- `flags` or `x7` is `NORMAL_INIT_MMU_FLAGS`, which will be `orr`ed to indicate to the memory system entries are blocks, inner sharable, accessible, valid, etc.
+- `phys` or `x3` is 0x1000
+- `start` or `x5` is the virtual address we are mapping, 0x1000, and it should be the same as the physical address as this is the identity mapping table
+- `end` or `x6` is also 0x1000, the value of `_idmap_text_end`, as there is nothing yet in the `.idmap.text` section
 
-Like its predecessors, the `__BLOCK_MAP` macro begins by calculating indexes into the PMD, in this case start and end indexes. Since each PMD entry points to a 2MB block, and there are 512 pointers, it is possible to map up to 1GB. Our assumption is the required mapping will safely fit within this 1GB, thus requiring to initial setup or beyond what is demonstrated here. After establishing the bounds of the indexes to use, `phys`, or `x3` is properly aligned by double shifting, first right and then left. The left shift is done as part of an `orr` instruction that sets the correct block descriptor attributes. This descriptor is stored in the correct index of the PMD, and loops. Adding `SECTION_SIZE` to the descriptor on each iteration maintains the correct descriptor attributes. For the identity mapping table we know:
+Like its predecessor, the `__BLOCK_MAP` macro begins by calculating indexes into the _PMD_. Both start and end indexes. Since each _PMD_ entry points to a 2MB block, and there are 512 pointers, it is possible to map up to 1GB. Our assumption is the required mapping will safely fit within this 1GB, only one _PMD_ page is needed, with no additional indexes into the _PUD_. After establishing the bounds of the indexes to use, `phys`, or `x3`, is properly aligned by double shifting, first right and then left. The left shift is done as part of an `orr` instruction that sets the correct block descriptor attributes. This descriptor is stored in the correct index of the _PMD_, and loops. Adding `SECTION_SIZE` to the descriptor on each iteration maintains the correct descriptor attributes for each entry. For the identity mapping table we know:
 
-- The start index is equal to ((`0x1000` >> 21) & 0x1FF), or 0
-- The end index is equal to ((`0x1000` >> 21) & 0x1FF), or 0
-- The descriptor to be stored is equal to (((`0x1000` >> 21) << 21) | 0x70F), or 0x70F
-- The value stored in (`0x4020001 + (0 << 3)) is 0x713
-- The loop termintes after one iteration, and the table setup is complete
+- The start index is equal to ((0x1000 >> 21) & 0x1FF), or 0
+- The end index is equal to ((0x1000 >> 21) & 0x1FF), or 0
+- The descriptor to be stored is equal to (((0x1000 >> 21) << 21) | 0x70F), or 0x70F
+- The value stored in (0x4020000 + (0 << 3)) is 0x70F
+- The loop terminates after one iteration, and the table setup is complete
 
-An identical procedure is used to setup the `page_global_dir`. There are some additional sublties involved with initalizing the `page_global_dir`, which are not yet transparent. We will revist this at the end of the chapter when we have enabled the MMU. After establishing these boot tables, at the end of the `__create_page_tables` routine, we invalidate the entire Translation Lookaside Buffer, or TLB, to ensure there were no stale entries on reset.
+An identical procedure is used to setup the `page_global_dir`. There are some additional subtleties involved with initializing the `page_global_dir`, which are not yet transparent. We will revisit this at the end of the chapter when we have [enabled the MMU](mmu.md). After establishing these boot tables, at the end of the `__create_page_tables` routine, we invalidate the entire Translation Lookaside Buffer, or TLB, to ensure there are no stale entries left over on reset. We will dive deeper into TLB maintenance in [Chapter Nine](../chapter09/chapter9.md).
 
-In this section we also take care to initalize `MAIR_EL1` and `TCR_EL1`. Again, most settings are for non-cacheable memory, which will need adjustment when caches are enabled:
+> Note: compare our page table setup routines with the Linux `arm64` [implementation](https://github.com/torvalds/linux/blob/v4.20/arch/arm64/kernel/head.S#L286).
+
+In this slice we also take care to initialize `MAIR_EL1` and `TCR_EL1`. Again, most settings are for non-cacheable memory, which will need adjustment when caches are enabled:
 
 ```asm
 __setup_mem_attrs:
@@ -426,5 +381,5 @@ We are not yet ready to turn on the Memory Management Unit. However, in this sec
 
 ![Raspberry Pi Boot Table Cheesecake](images/0301_rpi4_boot.png)
 
-*Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter4/chapter4.md)  
-*Previous Page*  [ARM Page Tables](arm-page-tables.md) |  *Next Page* [Linear Mapping the Entire Physical Address Space](linear-mapping.md)
+*Previous Page*  [ARM Page Tables](arm-page-tables.md) |  *Next Page* [Linear Mapping the Entire Physical Address Space](linear-mapping.md)  
+*Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter04/chapter4.md)
