@@ -1,85 +1,15 @@
-*Chapter Top* [Chapters[5]: SMP](chapter5.md) | *Next Chapter* [Chapters[6]: Memory Allocation](../chapter6/chapter6.md)  
+*Chapter Top* [Chapters[5]: SMP](chapter5.md) | *Next Chapter* [Chapters[6]: Memory Allocation](../chapter06/chapter6.md)  
 *Previous Page* [The Cantankerous Cache Bug](cache-bug.md) | *Next Page* [Atomics and Ordering](atomics-ordering.md)
 
-## Spinlocks
-
-#### What We're Baking With
-
-```bash
-.
-├── Makefile
-├── arch
-│   └── arm64
-│       ├── allocate.c
-│       ├── barrier.S
-│       ├── board
-│       │   └── raspberry-pi-4
-│       │       ├── config.txt
-│       │       ├── include
-│       │       │   └── board
-│       │       │       ├── bare-metal.h
-│       │       │       ├── devio.h
-│       │       │       ├── gic.h
-│       │       │       └── peripheral.h
-│       │       ├── irq.S
-│       │       ├── irq.c
-│       │       ├── memmap.c
-│       │       ├── mini-uart.S
-│       │       ├── mini-uart.c
-│       │       ├── secure-boot.S
-│       │       ├── timer.S
-│       │       └── timer.c
-│       ├── cache.S
-│       ├── entry.S
-│       ├── error.c
-│       ├── event.S
-│       ├── exec
-│       │   └── asm-offsets.c
-│       ├── include
-│       │   └── arch
-│       │       ├── allocate.h
-│       │       ├── bare-metal.h
-│       │       ├── cache.h
-│       │       ├── irq.h
-│       │       ├── linux-extension.h
-│       │       ├── lock.h
-│       │       ├── memory.h
-│       │       ├── page.h
-│       │       ├── process.h
-│       │       ├── prot.h
-│       │       └── smp.h
-│       ├── irq.S
-│       ├── linker.template
-│       ├── lock.S
-│       ├── lock.c
-│       ├── main.S
-│       ├── memset.S
-│       ├── smp.S
-│       ├── smp.c
-│       └── sync.c
-├── build.sh
-├── cheesecake.conf
-├── config
-│   └── config.py
-├── include
-│   └── cake
-│       ├── lock.h
-│       ├── log.h
-│       └── types.h
-└── src
-    ├── cheesecake.c
-    └── log.c
-```
-
-The addition of the locking modules will give us the tool necessary to protect critical regions of code when multiple CPUs would like to otherwise trample each other.
+## Spinlocks ([chapter05/code2](code2))
 
 #### Protecting Critical Regions
 
-Spinlocks do exactly as their name suggests. They cause a CPU to spin in an infinte loop while attempting to acquire a lock. When one CPU has acquired a lock, other CPUs are not able to grab a hold of it until it has been released. Thus, lock/acquire and unlock/release instructions form the bounds of critical regions - regions of code we would like only one CPU to have access exclusive access.
+Spinlocks do exactly as their name suggests. A CPU will spin in an infinite loop while attempting to claim a lock. When one CPU has acquired the lock, other CPUs are not able to grab a hold of it until the one has voluntarily released it. Thus, lock/acquire and unlock/release instructions form the bounds of critical regions - regions of code we would like only one CPU to have exclusive access.
 
-The protection of critical regions of code is used to protect shared data such that access to that data remains consistent. Multiple simultaneous updates to a shared data structure could leave that structure in an inconsistent state. In our CheesecakeOS, at this moment, the logging buffer is unproteced and multiple CPUs are accessing the critical logging function simultaneously leading to a mess of output on the screen. A spinlock can help us fix this.
+The locking of critical regions used to protect shared data so it retains programmatic consistency. Multiple unserialized updates to a shared data structure could leave that structure in an inconsistent state. In our CheesecakeOS, at this moment, the logging buffer is unprotected and multiple CPUs are accessing the critical logging function simultaneously leading to a mess of output on the screen. A spinlock can help fix this.
 
-Our spinlock implementation is not particularly brilliant or creative - it is a ticket spinlock that can be found on `pg. 6535` of the `ARM ARM`. A ticket spinlock is nice, conceptually. It is componsed of two values, an owner and a ticket. The structure to represent the lock is defined in [include/cake/lock.h](code1/include/cake/lock.h):
+Our spinlock implementation is not particularly brilliant or creative - it is a ticket spinlock that can be found on `pg. K11-6535` of the `ARM ARM`. A ticket spinlock is nice, conceptually. It is composed of two values, an owner and a ticket. The structure to represent the lock is defined in [include/cake/lock.h](code1/include/cake/lock.h):
 
 ```C
 struct spinlock {
@@ -88,7 +18,7 @@ struct spinlock {
 };
 ```
 
-When a thread of execution attempts to acquire a lock, it will _take the next ticket_ and wait in line. When the value of the owner equals the value of the ticket, the thread has acquired the lock, and can proceed. When the thread releases the lock, it will increment the owner value, so that the thread holding the next ticket can proceed. So threads are able to proceed in a FIFO fashion, and there is less risk of starvation from one thread being unlucky while many threads are attempting to acquire the lock at once.
+When a thread of execution attempts to acquire a lock, it will _take the next ticket_ and wait in line. When the value of the owner equals the value of the ticket, the thread has acquired the lock, and can proceed. When the thread releases the lock, it will increment the owner value, so that the thread holding the next ticket can proceed. Threads are able to move forward in a FIFO fashion. Compared with a single-bit-test-and-set lock, there is lower risk of starvation from one thread being unlucky while many threads are attempting to acquire the lock at once.
 
 The spinlock is put to use as in [src/cheesecake.c](code1/src/cheesecake.c):
 
@@ -109,7 +39,7 @@ void cheesecake_main(void)
 }
 ```
 
-Where the `SPIN_LOCK` and `SPIN_UNLOCK` macros are defined, along with others, in [arch/arm64/include/arch/lock.h](code1/arch/arm64/include/arch/lock.h):
+The `SPIN_LOCK` and `SPIN_UNLOCK` macros are defined, along with others, in [arch/arm64/include/arch/lock.h](code1/arch/arm64/include/arch/lock.h):
 
 ```C
 #include "cake/lock.h"
@@ -125,7 +55,7 @@ unsigned long spin_lock_irqsave(struct spinlock *lock);
 void spin_unlock_irqrestore(struct spinlock *lock, unsigned long flags);
 ```
 
-Our implementation of actual locking is located in [arch/arm64/lock.S](code1/arch/arm64/lock.S):
+Our implementation of the locking is located in [arch/arm64/lock.S](code1/arch/arm64/lock.S):
 
 ```asm
 
@@ -143,7 +73,7 @@ __spin_lock:
     cbnz    w2, 1b
 ```
 
-A pointer to a `struct spinlock` is passed to the `__spin_lock` routine. First, the whole 64-bit value of the lock is loaded into `x3`, and the ticket value is incremented. The processor attempts to store the new value back into the spinlock's memory address with a `stxr` instruction. _If_ this store is successful, a 0 will be written to `w2`. If this store is not successful, the processor returns to the `ldxar` to try again. This load-exclusive, store-exclusive pairing ensures that the operation will be atomic, and the value loaded into `x3` can be used for the ticket and owner numbers.
+A pointer to a `struct spinlock` is passed to the `__spin_lock` routine. First, the whole 64-bit value of the lock is loaded into `x3`, and the ticket value is incremented. The processor attempts to store the new value back into the spinlock's memory address with a `stxr` instruction. _If_ this store is successful, a zero will be written to `w2`. If this store is not successful, the processor returns to the `ldxar` to try again. This load-exclusive, store-exclusive pairing ensures the operation will be atomic, and the value loaded into `x3` can be used for the ticket and owner numbers.
 
 ```asm
     eor     x1, x3, x3, ror #32
@@ -163,7 +93,7 @@ An exclusive-or between the ticket and the owner values is a quick way to check 
     ret
 ```
 
-In the case the ticket and owner are not equal, the code enters a busy spin loop. First, a local event is sent to prime the loop, ensureing it is executed at least once. Another exclusive load is performed, and again the process checks the ticket and owner values to determine if they are equal. As long as they are different, the spinning continues. When they are equal, the processor is free to leave the loop and proceed to the critical section. 
+In the case the ticket and owner are not equal, the code enters a busy spin loop. First, a local event is sent to prime the loop, ensuring at least one go-round. Another exclusive load is performed, and again the process checks the ticket and owner values to determine if they are equal. As long as they are different, the spinning continues. When they are equal, the processor is free to leave the loop and proceed to the critical section. 
 
 ```asm
 .globl __spin_unlock
@@ -174,13 +104,13 @@ __spin_unlock:
     ret
 ```
 
-The `__spin_unlock` routine carefully updates the owner, but only the owner, by loading only the lower 32-bits of the `struct spinlock` pointer, incrementing by 1, and storing back only the lower 32-bits. The `stlr` instruction will generate an event to resume any threads waiting on the lock with the `wfe` instruction. The owner was incremented so the thread holding the next ticket will be allowed to continue to the critical region. These two small functions are the entire locking implementation for this tutorial. We are lucky modern processors give us such neat, compact solutions for a fairly obnoxious problem.
+The `__spin_unlock` routine carefully updates the owner, but only the owner, by loading only the lower 32-bits of the `struct spinlock` pointer, incrementing by one, and storing back again only the lower 32-bits. The `stlr` instruction will generate an event to resume any threads waiting on the lock back in `__spin_lock` with the `wfe` instruction. The thread holding the next ticket will be allowed to continue to the critical region. These two small functions are the entire locking implementation for this tutorial. We are lucky modern processors give us such neat, compact solutions for a fairly obnoxious problem.
 
 #### Spinlocks and Interrupts
 
-One subtely involves the use of spinlocks with IRQs. If a lock protecting a critical region is used in an interrupt handler for a given, that interrupt must be disabled on the local CPU before the local CPU attempts to acquire the lock. Otherwise a deadlock is possible. A CPU can acquire the lock, and, in the middle of executing within the critical region, be interrupted. The interrupt handler for the given interrupt may then attempt to acquire the lock. As the original thread that was interrupted still holds the lock, the interrupt will never acquire the lock.
+One subtlety concerns the use of spinlocks within an interrupt context. If a lock protecting a critical region is used in an interrupt handler, that interrupt must be disabled on the local CPU before the local CPU attempts to acquire the lock. Otherwise a deadlock is possible. A CPU can acquire the lock, and, in the middle of executing within the critical region, be interrupted. The interrupt handler will then attempt to acquire the lock. As the original thread still holds the lock, the interrupt handler will never acquire the lock.
 
-In order to faciliate the disabling of interrupts, the `SPIN_LOCK_IRQSAVE` macro disables interrupts, and returns the state before disabling. The `SPIN_INLOCK_IRQRESTORE` macro restores the interrupt masks to the state before disabling - if interrupts had been disabled previously, they remain so. If interrupts had been enabled, they are enabled once more. The implementations of these macros for the arm64 architecture come from [arch/arm64/lock.c](code1/arch/arm64/lock.c):
+In order to facilitate the disabling of interrupts, we provide the `SPIN_LOCK_IRQSAVE` macro. The macro stores the current interrupt flags, disables interrupts, acquires the lock, and returns the state. The `SPIN_INLOCK_IRQRESTORE` macro restores the interrupt masks to the state before disabling - if interrupts had been disabled previously, they remain so. If interrupts had been enabled, they are enabled once more. The implementations of these macros for the arm64 architecture come from [arch/arm64/lock.c](code1/arch/arm64/lock.c):
 
 ```C
 #include "cake/lock.h"
@@ -217,9 +147,9 @@ __irq_save:
     ret
 ```
 
-We use the `SPIN_LOCK_IRQSAVE` and `SPIN_LOCK_IRQRESTORE` in our `do_idle` function. The `big_cake_lock` spinlock is not used in IRQs, but the irq handler does log in the case an IRQ is not found, so disabling IRQs ensure CPUs won't trample each other in an attempt to log output, even if an IRQ is not recognized. Now, building and running should appear much cleaner:
+We use the `SPIN_LOCK_IRQSAVE` and `SPIN_LOCK_IRQRESTORE` macros in our `do_idle` function. The `big_cake_lock` spinlock is not used in IRQs, but the IRQ handler does call to `log` in the case an IRQ is not found. Disabling IRQs ensures the CPUs won't trample each other in an attempt to log output. Now that a CPU must gain exclusive access to a critical region, building and running should appear much cleaner:
 
 ![Raspberry Pi Locked Cheesecake](images/0503_rpi4_locked.png)
 
-*Chapter Top* [Chapters[5]: SMP](chapter5.md) | *Next Chapter* [Chapters[6]: Memory Allocation](../chapter6/chapter6.md)  
-*Previous Page* [The Cantankerous Cache Bug](cache-bug.md) | *Next Page* [Atomics and Ordering](atomics-ordering.md)
+*Previous Page* [The Cantankerous Cache Bug](cache-bug.md) | *Next Page* [Atomics and Ordering](atomics-ordering.md)  
+*Chapter Top* [Chapters[5]: SMP](chapter5.md) | *Next Chapter* [Chapters[6]: Memory Allocation](../chapter06/chapter6.md)
