@@ -1,4 +1,10 @@
 /*
+ *
+ * Copyright (C) 2001 Deep Blue Solutions Ltd.
+ * Copyright (C) 2012 ARM Ltd.
+ * Authors: Catalin Marinas <catalin.marinas@arm.com>
+ *      Will Deacon <will.deacon@arm.com>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
  * published by the Free Software Foundation.

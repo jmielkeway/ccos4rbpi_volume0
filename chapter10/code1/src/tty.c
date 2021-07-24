@@ -1,4 +1,9 @@
 /*
+ *
+ * Copyright (C) 1991, 1992, 1993 Linus Torvalds
+ * Copyright (C) 1994 Julian Cowley
+ * Copyright (C) 1994 Theodore Ts'o
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
  * published by the Free Software Foundation.
