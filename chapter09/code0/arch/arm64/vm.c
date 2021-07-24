@@ -1,4 +1,10 @@
 /*
+ *
+ * Copyright (C) 1995  Linus Torvalds
+ * Copyright (C) 1995-2004 Russell King
+ * Copyright (C) 2002-2003 Deep Blue Solutions Ltd, all rights reserved.
+ * Copyright (C) 2012 ARM Ltd.
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
  * published by the Free Software Foundation.
