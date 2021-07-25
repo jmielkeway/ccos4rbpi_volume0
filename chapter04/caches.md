@@ -1,7 +1,7 @@
 *Previous Top* [Chapters[4]: Caches](chapter4.md) | *Next Chapter* [Chapters[5]: SMP](../chapter05/chapter5.md)  
 *Previous Page* [Chapters[4]: Caches](chapter4.md) | *Next Page* [Chapters[5]: SMP](../chapter05/chapter5.md)
 
-## Enabling the Caches
+## Enabling the Caches ([chapter04/code0](code0))
 
 #### Invalidating the Entire Cache to the Point of Coherency
 
