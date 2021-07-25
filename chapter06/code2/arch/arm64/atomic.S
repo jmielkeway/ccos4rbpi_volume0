@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+.globl __atomic64_fetch_or
 __atomic64_fetch_or:
     prfm 	pstl1strm, [x0]
 1:
@@ -28,6 +29,7 @@ __atomic64_fetch_or:
     mov 	x0, x2
     ret
 
+.globl __atomic64_or
 __atomic64_or:
     prfm 	pstl1strm, [x0]
 1:
@@ -37,6 +39,7 @@ __atomic64_or:
     cbnz 	w3, 1b
     ret
 
+.globl __atomic64_andnot
 __atomic64_andnot:
     prfm 	pstl1strm, [x0]
 1:
