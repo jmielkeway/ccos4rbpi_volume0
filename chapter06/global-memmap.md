@@ -1,92 +1,11 @@
-*Chapter Top* [Chapters[6]: Memory Allocator](chapter6.md) | *Next Chapter* [Chapters[7]: Scheduling and Processes](../chapter7/chapter7.md)  
+*Chapter Top* [Chapters[6]: Memory Allocator](chapter6.md) | *Next Chapter* [Chapters[7]: Scheduling and Processes](../chapter07/chapter7.md)  
 *Previous Page* [Chapters[6]: Memory Allocator](chapter6.md) | *Next Page* [Binary Buddies](binary-buddies.md)
 
 ## The Global Memory Map
 
-#### What We're Baking With
-
-```bash
-tree
-.
-├── Makefile
-├── arch
-│   └── arm64
-│       ├── allocate.c
-│       ├── atomic.S
-│       ├── barrier.S
-│       ├── board
-│       │   └── raspberry-pi-4
-│       │       ├── config.txt
-│       │       ├── include
-│       │       │   └── board
-│       │       │       ├── bare-metal.h
-│       │       │       ├── devio.h
-│       │       │       ├── gic.h
-│       │       │       └── peripheral.h
-│       │       ├── irq.S
-│       │       ├── irq.c
-│       │       ├── memmap.c
-│       │       ├── mini-uart.S
-│       │       ├── mini-uart.c
-│       │       ├── secure-boot.S
-│       │       ├── timer.S
-│       │       └── timer.c
-│       ├── cache.S
-│       ├── entry.S
-│       ├── error.c
-│       ├── event.S
-│       ├── exec
-│       │   └── asm-offsets.c
-│       ├── include
-│       │   └── arch
-│       │       ├── allocate.h
-│       │       ├── atomic.h
-│       │       ├── bare-metal.h
-│       │       ├── barrier.h
-│       │       ├── cache.h
-│       │       ├── irq.h
-│       │       ├── linux-extension.h
-│       │       ├── lock.h
-│       │       ├── memory.h
-│       │       ├── page.h
-│       │       ├── process.h
-│       │       ├── prot.h
-│       │       └── smp.h
-│       ├── irq.S
-│       ├── linker.template
-│       ├── lock.S
-│       ├── lock.c
-│       ├── main.S
-│       ├── memset.S
-│       ├── smp.S
-│       ├── smp.c
-│       └── sync.c
-├── build.sh
-├── cheesecake.conf
-├── config
-│   └── config.py
-├── include
-│   └── cake
-│       ├── allocate.h
-│       ├── bitops.h
-│       ├── cake.h
-│       ├── compiler.h
-│       ├── list.h
-│       ├── lock.h
-│       ├── log.h
-│       └── types.h
-├── kernel8.img
-└── src
-    ├── allocate.c
-    ├── cheesecake.c
-    └── log.c
-```
-
-The [src/allocate.c](code0/src/allocate.c) module is the sweet new ingrediant. For the entirety of this chapter we will focus on developing our memory allocator's features. We'll need a data structure to help us along the way. We add a list libary, [include/cake/list.h](code0/include/cake/list.h).
-
 #### The List Library
 
-Going forward, we will need to keep track of collectons of objects. We will make heavy use of a linked-list structure, defined in [include/cake/list.h](code0/include/cake/list.h),  in order to so. Our implementation is copied from Linux - I see no reason to mess with the best. We use a circular, doubly-linked list:
+Going forward, we will need to keep track of collections of objects. We will lean heavily on a linked-list structure, defined in [include/cake/list.h](code0/include/cake/list.h). Our implementation is copied from Linux - no reason to mess with the best. We use a circular, doubly-linked list:
 
 ```
 struct list {
@@ -95,7 +14,7 @@ struct list {
 };
 ```
 
-Whenever we need a list of objects, we take Linux's brilliant idea of imbedding the list structure within the object itself. Then, given a pointer to a list object, a reference to the containing object can be found through a calculation of the offset of the list in the container. A helper macro for just this purpose has been defined in [include/cake/cake.h](code0/include/cake/cake.h):
+Whenever we need a list of objects, we use Linux's brilliant idea of embedding the list structure within the object itself. Then, given a pointer to a list object, a reference to the containing object can be found through a calculation of the offset of the list from the head of the container. A helper macro for just this purpose is defined in [include/cake/cake.h](code0/include/cake/cake.h):
 
 ```C
 #define OFFSETOF(type, member)    __builtin_offsetof(type, member)
@@ -105,7 +24,7 @@ Whenever we need a list of objects, we take Linux's brilliant idea of imbedding 
     ((type *)(__mptr - OFFSETOF(type, member))); })
 ```
 
-Most useful lists will still have a _canonical head_, a `struct list` structure that is only used as the head of the list, rather than a list that has a containing object.
+Most useful lists will have a _canonical head_, a `struct list` structure that is only used as the head of the list with no containing object.
 
 ```C
 static inline int list_empty(struct list *list)
@@ -114,17 +33,17 @@ static inline int list_empty(struct list *list)
 }
 ```
 
-The `list_empty` function can then be used to test if such a structure represents an empty list. If so, the `next` pointer will point back to itself. Thus, in many instances we will be initalizing lists with a similar pattern to start off with a valid empty list:
+The `list_empty` function can then be used to test for an empty list. If empty, the `next` pointer will point back to itself. We initialize empty lists with this pattern:
 
 ```C
     struct list mylist;
     mylist.prev = &mylist;
-    mylist.next = &mylist.
+    mylist.next = &mylist;
 ```
 
 The list implementation is always _first-out_. It can be used to implement a queue, in the case of _last-in-first-out_, or a stack in the case of _first-in-first-out_.
 
-```
+```C
 #define LIST_ENTRY(ptr, type, member)   \
     CONTAINER_OF(ptr, type, member)
 
@@ -143,7 +62,12 @@ static inline void list_delete(struct list *element)
 }
 ```
 
-In order to pop an item from a list, first the `LIST_FIRST_ENTRY` macro is used to calculate a reference to the containing object of interest. Then the `list_delete` function is used to detach the contained list element from the list, and fill in the gap that would be left otherwise.
+To pop from a list we can use the `LIST_FIRST_ENTRY` to calculate a reference to the first containing object of interest, given the head of a list. Then the `list_delete` function detaches the contained list element from the list, and fills in the gap left otherwise:
+
+```C
+    struct mystruct item = LIST_FIRST_ENTRY(mylist, struct mystruct, mystructlist);
+    list_delete(&(item->mystructlist));
+```
 
 To implement a stack, `struct list` structures should be added to the front of the list, so they will be the first to be selected. For a queue, items should be added to the end of the list. These operations are encapsulated in `list_add` for stacks, and `list_enqueue` for queues.
 
@@ -173,9 +97,11 @@ static inline void list_enqueue(struct list *list, struct list *element)
 
 If neither a stack nor a queue is specifically needed, but we only want a linked collection of objects, it does not matter which add function is used - both will work.
 
+> Note: See the Linux [list implementation](https://github.com/torvalds/linux/blob/v4.20/include/linux/list.h), as well as the [type definition](https://github.com/torvalds/linux/blob/v4.20/include/linux/types.h#L186), and the famous [container\_of macro](https://github.com/torvalds/linux/blob/v4.20/include/linux/kernel.h#L995).
+
 #### All the Pages
 
-To an operating system, the software closest to the processor, memory comes in page-sized units. Requests to allocate and free memory are generally requests to allocate and free blocks of pages. If an OS is going to effectively manage the system's memory resource, it must be able to keep track of pages. Therefore CheesecakeOS, like Linux, keeps track of all of the RAM pages of the system. That is a lot of pages! On a 4GB Rasperry Pi 4 with 4KB pages, that is 1048576 pages. Since a struct will represent each page, each byte in the struct means the storage requirements of a data structure representing all the pages will take up 1MB. So the structure will need to be as small as possible. CheesecakeOS has a 32-byte `struct page` defined in [include/cake/allocate.h](code0/include/cake/allocate.h):
+To an operating system, memory comes in page-sized units. Requests to allocate and free memory are generally requests to allocate and free blocks of pages. Therefore CheesecakeOS, like Linux, keeps track of all of the RAM pages of the system. That is a lot of pages! On a 4GB Raspberry Pi 4 with 4KB pages, it comes to 1,048,576 pages. Since a struct will represent each page, each byte in the struct will cost 1MB in overhead. So the structure will need to be as small as possible. CheesecakeOS has a 32-byte `struct page` defined in [include/cake/allocate.h](code0/include/cake/allocate.h):
 
 ```C
 #define GLOBAL_MEMMAP   system_phys_page_dir
@@ -195,9 +121,14 @@ struct page {
 extern struct page *system_phys_page_dir;
 ```
 
-Only one bit, each, is needed to determine if the page is allocated, reserved, and valid. Current order and original order, used by the binary buddy allocator described in the next section, and taking on a value in the range [0, 9] can be expressed in 4 bits each. The page-frame-number, or PFN can be up to 53 bits. For perspective, our 4GB of memory with 4KB pages can be expressed in 20 bits, so this is ample support for many systems. The page structures can be strung together in a list, which will be necessary for alloctaor implementation, where we will pull a page of a list of available pages in order to satisfy allocation requests. Finally, we will ultimately want to keep track of the number of references to a page, so we can be sure to delay freeing the page back to the allocator until it is no longer needed.
+The `struct page` is intended to be as memory efficient as possible:
+- Only one bit, each, is needed to determine if the page is `allocated`, `reserved`, and `valid`. 
+- Both `current_order` and `original_order`, used by the binary buddy allocator described in the next slice, and taking on a value in the range [0, 9] can be expressed in four bits each. 
+- The page-frame-number, or _PFN_ can be up to 53 bits. For perspective, our 4GB of memory with 4KB pages can be expressed in 20 bits, so 53 bits is ample support for many systems. 
+- The page structures can be linked together in a list, which will be necessary for the allocator implementation, where we will pull a page from a list of available pages in order to satisfy allocation requests. 
+- We will ultimately want to keep track of the number of references to a page, so we can be sure to delay freeing the page back to the allocator until it is no longer needed.
 
-We will keep track of all the pages in the system through a linear array, where each page's page-frame-number is an index into that array. The array is declared as `system_phys_page_dir`, though we will reference it by the `GLOBAL_MEMMAP` macro-alias. The `system_phys_page_dir` is defined in [src/allocate.c](code0/src/allocate.c), along with an array of _freelists_:
+We will keep track of all the pages in the system through a linear array, where each page's page-frame-number is an index into that array. The array is declared as `system_phys_page_dir`, though we will reference it by the `GLOBAL_MEMMAP` macro-alias. The `system_phys_page_dir` is defined in the new kernel module [src/allocate.c](code0/src/allocate.c), along with a statically defined array of _freelists_:
 
 ```C
 static struct list freelists[MAX_ORDER + 1];
@@ -226,7 +157,7 @@ void allocate_init()
 }
 ```
 
-The `GLOBAL_MEMMAP` and `freelists` list team-up to form the data-structures enabling memory allocation. The freelists are lists of blocks of unallocated consecutive pages, grouped by _order. Order 0 indicates a single page. Order one has blocks of two consecutive pages.
+The `GLOBAL_MEMMAP` and `freelists` arrays team-up to form the data structures enabling memory allocation. The `freelists` are lists of blocks of free consecutive pages, grouped by _order_. Order 0 indicates a single page. Order one has blocks of two consecutive pages.
 
 | Free List Index | Order | Block Size (in Pages) |
 | :---           | :--- | :---                 |
@@ -241,9 +172,9 @@ The `GLOBAL_MEMMAP` and `freelists` list team-up to form the data-structures ena
 | 8 | 8 | 256 |
 | 9 | 9 | 512 |
 
-Freelist blocks of order nine are blocks of 512 consecutive pages, or, with 4KB pages, 2MB blocks of memory. These blocks of memory allow requests of various sizes to be accomodated. For eample, the size of the kernel stack we have been using has been eight pages. New kernel stacks can be staisfied by requesting memory from the freelists of order three.
+Freelist blocks of order nine are blocks of 512 consecutive pages, or, with 4KB pages, 2MB blocks of memory. The allocator accommodates requests of these various block sizes. For example, the size of the kernel stack we use is eight pages. Requests for new kernel stacks can be satisfied by allocating from the freelist of order three.
 
-It is the architecture's job to initalize both the `GLOBAL_MEMMAP`, and the `freelists`. In order to do so, it uses a simple new structure, `struct draminit`, defined in [arch/arm64/include/arch/memory.h](code0/arch/arm64/include/arch/memory.h):
+It is the architecture's job to initialize both the `GLOBAL_MEMMAP`, and the `freelists`. In order to do so, it uses a simple new structure, `struct draminit`, defined in [arch/arm64/include/arch/memory.h](code0/arch/arm64/include/arch/memory.h):
 
 ```C
 struct draminit {
@@ -291,7 +222,7 @@ void arch_populate_allocate_structures(struct list *freelists)
     memset(GLOBAL_MEMMAP, 0, firstfree - physstart);
 ```
 
-The number of pages is calculated by the last DRAM address, shifted by the page size. The memory to be reserved for the `GLOBAL_MEMMAP` is calculated by multiplying the number of pages by the size of `struct page` strcuture, and adding this value to the `block` address. In the case of a 4GB Raspberry Pi 4, we expect the first available address at this time to be at the 8MB mark, and the end of the `GLOBAL_MEMMAP` to be at 40MB.
+The number of pages is calculated by the last DRAM address, shifted by the page size. The memory region to be reserved for the `GLOBAL_MEMMAP` is calculated by multiplying the number of pages by the size of the `struct page` structure, and adding this value to the `block` address. In the case of a 4GB Raspberry Pi 4, we expect the first available address at this time to be at the 8MB mark, and the end of the `GLOBAL_MEMMAP` to be at 40MB.
 
 | Region | Start Address | End Address |
 | :---   | :--- | :--- |
@@ -301,7 +232,7 @@ The number of pages is calculated by the last DRAM address, shifted by the page 
 | Baby Boot Allocator | 6MB | 8MB |
 | `GLOBAL_MEMMAP` | 8MB | 40 MB |
 
-The physical address of this block that comes from the board, is convereted to the kernel's virtual address, and assigned, then the entire array region is zeroed.
+The physical address of this block that comes from the board, is converted to the kernel's virtual address, and assigned. Then the entire array region is zeroed.
 
 ```C
     for(unsigned int i = 0; i < address_map->size; i++) {
@@ -326,7 +257,7 @@ The physical address of this block that comes from the board, is convereted to t
     }
 ```
 
-Iterating through the same `address_map` that was used in the `paging_init` setup, each address region of type `MEM_TYPE_SDRAM` is considered. Depending on the flags, the setup can determine how to initialize each of the `GLOBAL_MEMMAP` pages.
+Iterating through the same `address_map` we used for the `paging_init` setup, each address region of type `MEM_TYPE_SDRAM` is considered. The flags of each region determine how to initialize the `GLOBAL_MEMMAP` pages within.
 
 ```C
 static void alloc_kernel_pages(struct address_region *addrreg, struct list *freelists)
@@ -361,9 +292,9 @@ static void alloc_kernel_pages(struct address_region *addrreg, struct list *free
 }
 ```
 
-The `alloc_kernel_pages` function loops through the address region, one section (2MB) at a time. In the case of both the `MEM_FLAGS_CAKE_TEXT`, and the `MEM_FLAGS_CAKE` regions, given our current CheesecakeOS kernel, both will be only one section in size - but if the kernel grows, the implementation can accomodate. For each iteration through the loop, the start page is initialized to be allocated, reserved, and valid. The current and original orders are set to nine, representing a 2MB block. The next 511 pages are marked as not valid, already represented by the lead page.
+The `alloc_kernel_pages` function loops through the address region, one section (2MB) at a time. In the case of both the `MEM_FLAGS_CAKE_TEXT`, and the `MEM_FLAGS_CAKE` regions, given our current CheesecakeOS kernel, only one iteration is needed. But if the kernel grows, the implementation can accommodate. For each iteration through the loop, the start page is initialized as allocated, reserved, and valid. The current and original orders are set to nine, representing a 2MB block. The next 511 pages are marked as not valid, already represented by the lead page.
 
-While the kernel pages are reserved, and not available for use by the allocator (allocating and overwriting kernel pages would be a disaster), there are two special cases of memory that can be served up for allocation. The region of the kernel image specifically marked as temporary and overwritable, no longer used after all CPUs have been initalized. Also any unused baby-boot allocator pages.
+While the kernel pages are reserved, and not available for use by the allocator (allocating and overwriting kernel pages would be a disaster), there are two special cases of image memory that can be served up for allocation. The region of the kernel image specifically marked as temporary and overwritable, no longer used after all CPUs have been initialized. Also any unused baby-boot allocator pages.
 
 ```C
 #define OVERWRITE_FREEBLOCK_SHIFT   (3)
@@ -404,7 +335,7 @@ static void alloc_overwrite_pages(struct address_region *addrreg, struct list *f
 }
 ```
 
-In contrast to the kernel pages, the `MEM_FLAGS_OVERWRITE` address region is broken up into eight page blocks. The first page in each block represents the entire block, and is the only valid page. It is marked as unallocated but valid. Each of the eight page blocks in the region is also added to the freelist of order three.
+In contrast to the kernel pages, the `MEM_FLAGS_OVERWRITE` address region is broken up into eight-page blocks. The first page in each block represents the entire block, and is the only valid page. It is marked as unallocated but valid. Each of the eight page blocks in the region is also added to the freelist of order three.
 
 ```C
 static void alloc_unused_baby_boot_pages(struct address_region *addrreg,
@@ -440,7 +371,7 @@ static void alloc_unused_baby_boot_pages(struct address_region *addrreg,
 }
 ```
 
-In handling the `MEM_TYPE_BABY_BOOT` pages, the implementation first assumes that all pages are allocated, and reserved - already in use for either global page tables, or kernel stacks. After initializing each page as such, each remaining baby-boot allocator page is requested, one at a time, and the original assumptions are overwritten for those pages. If any pages remain, they are added to the freelist of order zero.
+In handling the `MEM_TYPE_BABY_BOOT` pages, the implementation first assumes that all pages are allocated, and reserved - already in use for either global page tables, or for early kernel stacks. After initializing each page as such, each remaining baby-boot allocator page is requested, one at a time, and the original assumptions are overwritten for those pages. If any pages remain, they are added to the freelist of order zero.
 
 ```C
 static void alloc_dram_pages(struct address_region *addrreg,
@@ -488,11 +419,11 @@ static void alloc_dram_pages(struct address_region *addrreg,
 }
 ```
 
-For the general case, each address region is broken down into blocks of the largest possible order - hopefully all will be 2MB blocks, and this is the case for the Raspberry Pi 4 as all address start and end on 2MB alinged boundries. Just in case this is not true, however, the implementation calculates the block size on each iteration. The first page frame not used for the allocation of the `GLOBAL_MEMMAP` is passed into the `alloc_dram_pages` as the `firstfree` parameter. For the case of a 4GB Raspberry Pi 4 with our current code base:
+For the general case, each address region is broken down into blocks of the largest possible order - hopefully all will be 2MB blocks, and this is the case for the Raspberry Pi 4 as all address regions begin and end on 2MB-aligned boundaries. Just in case this is not true, however, the implementation calculates the block size on each iteration. The first page frame not used for the allocation of the `GLOBAL_MEMMAP` is passed into the `alloc_dram_pages` as the `firstfree` parameter. For the case of a 4GB Raspberry Pi 4 with our current code base:
 
-- The `GLOBAL_MEMMAP` should begin at the 8MB mark, which is _PFN_ 2048 (`0x800`)
-- Their are 32MB needed to store the _GLOBAL_MEMMAP_ array, which is 8192 pages (`0x2000`)
-- The first free page should be at the 40MB mark, or _PFN_ 10240 (`0x2800`)
+- The `GLOBAL_MEMMAP` should begin at the 8MB mark, which is _PFN_ 2048 (0x800)
+- There are 32MB needed to store the `GLOBAL_MEMMAP` array, which is 8192 pages (0x2000)
+- The first free page should be at the 40MB mark, or _PFN_ 10240 (0x2800)
 
 If the first page in the block is not reserved for the `GLOBAL_MEMMAP`, it is added to the freelist of the correct order. All other pages in the block are marked as invalid. 
 
@@ -517,7 +448,7 @@ Printing freelist for order: 0x0
 {Page Details: index: 0x629, allocated: 0x0, valid: 0x1}
 ```
 
-The first page in the zero-order free list is page 0x627, or page 39 (starting from zero) of the section reserved for the baby-boot allocator. The indexs, or page frame numbers, of each member of the list increases by one, as expected.
+The first page in the zero-order free list is page 0x627, or page 39 (starting from zero) of the section reserved for the baby-boot allocator. The indexes, or page frame numbers, of each member of the list increases by one, as expected.
 
 ```
 Printing freelist for order: 0x1
@@ -560,10 +491,9 @@ Printing freelist for order: 0x9
 
 The only other freelist containing entries is that of `MAX_ORDER`, or order nine. The first free page is page number 0x2800, as calculated previously. The PFN of the blocks in the list increase in increments of 512. The last free page is 0xFFE00 or decimal 1048064. This is 512 fewer than the 1048576 total number of pages previously calculated. The math checks out.
 
-In the `MAX_ORDER` freelist, both the first available block's `prev` pointer, and the last available blocks `next` point point to the same address. This is also correct. Recall once more that the `GLOBAL_MEMMAP` will begin at the 8MB mark, or physical address `0x800000`, virtual address `0xFFFF000000800000`. The first general free block will be at index 10240 of the `GLOBAL_MEMMAP` array, and each `struct page` in the array takes up 32 bytes of memory. Thus the address of the first general free block should located at `0x800000` + (`0x20` * `0x2800`), which comes out to physical address `0x850000`, virtual address `0xFFFF000000850000`. The offset of the `struct list` `pagelist` member of each page is eight bytes, so the virtual address of the first general freeblock's `pagelist` member should be `0xFFFF000000850008`. Fortunately, this is the value shown by the log as the second general freeblock's 'prev' pointer. 
+In the `MAX_ORDER` freelist, both the first available block's `prev` pointer, and the last available blocks `next` point point to the same address. This is also correct. Recall once more that the `GLOBAL_MEMMAP` will begin at the 8MB mark, or physical address 0x800000, virtual address 0xFFFF000000800000. The first general free block will be at index 10240 of the `GLOBAL_MEMMAP` array, and each `struct page` in the array takes up 32 bytes of memory. Thus the address of the first general free block should located at `0x800000 + (0x20 * 0x2800)`, which comes out to physical address 0x850000, virtual address 0xFFFF000000850000. The offset of the `pagelist` member of each page is eight bytes, so the virtual address of the first general freeblock's `pagelist` member should be 0xFFFF000000850008. Fortunately, this is the value shown by the log as the second general freeblock's `prev` pointer. 
 
-The second to last general freeblock has a value of `0x0xFFFF0000027FC008` as the `pagelist` offset in it's `next` pointer. Given 1048676 pages, 512 page blocks, and 1058604 as the PFN of the last valid page in the list, the correct address of the last general free block's `pagelist` physical address is given by `0x800000` + (`0x20` * `0xFFE00`) + 0x8, which equals `0x27FC008`, and corresponds to the correct virtual address.
+The second to last general freeblock has a value of 0x0xFFFF0000027FC008 as the `pagelist` offset in it's `next` pointer. Given 1048676 pages, 512 page blocks, and 1058604 as the PFN of the last valid page in the list, the correct address of the last general free block's `pagelist` physical address is given by `0x800000 + (0x20 * 0xFFE00) + 0x8`, which equals 0x27FC008, and corresponds to the correct virtual address.
 
-
-*Chapter Top* [Chapters[5]: SMP](chapter5.md) | *Next Chapter* [Chapters[6]: Memory Allocation](../chapter6/chapter6.md)  
-*Previous Page* [Spinlocks](spinlocks.md) | *Next Page* [Chapters[6]: Memory Allocation](atomics-ordering.md)
+*Previous Page* [Chapters[6]: Memory Allocator](chapter6.md) | *Next Page* [Binary Buddies](binary-buddies.md)  
+*Chapter Top* [Chapters[6]: Memory Allocator](chapter6.md) | *Next Chapter* [Chapters[7]: Scheduling and Processes](../chapter07/chapter7.md)
