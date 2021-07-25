@@ -1,7 +1,7 @@
 *Chapter Top* [Chapters[6]: Memory Allocator](chapter6.md) | *Next Chapter* [Chapters[7]: Scheduling and Processes](../chapter07/chapter7.md)  
 *Previous Page* [Chapters[6]: Memory Allocator](chapter6.md) | *Next Page* [Binary Buddies](binary-buddies.md)
 
-## The Global Memory Map
+## The Global Memory Map ([chapter06/code0](code0))
 
 #### The List Library
 
