@@ -1,5 +1,5 @@
-*Previous Chapter* [Chapters[7]: Scheduling and Processes](../chapter7/chapter7.md) | *Next Chapter* [Chapters[9]: Virtual Memory and Fake Partition](../chapter9/chapter9.md)  
-*Previous Page* [What the Fork!?](../chapter7/fork.md)  |  *Next Page* [Waitqueues](waitqueues.md)
+*Previous Chapter* [Chapters[7]: Scheduling and Processes](../chapter07/chapter7.md) | *Next Chapter* [Chapters[9]: Virtual Memory](../chapter09/chapter9.md)  
+*Previous Page* [What the Fork!?](../chapter07/fork.md)  |  *Next Page* [Waitqueues](waitqueues.md)
 
 ## Chapters[8]: Working and Waiting
 
@@ -95,10 +95,10 @@
     └── work.c
 ```
 
-In this chapter, we will expand the capabilities of our CheesecakeOS. At times a process will be waiting for an event. At other times - think IRQ context - it might be effcient or even neccessary to acknowledge that work needs to be done, but to defer that work until it can be scheduled. The wait module and the work module are the star additions.
+In this chapter, we extend further the capabilities of our CheesecakeOS. At times a process will be waiting for an event. At other times - think IRQ context - it may be efficient or even necessary to acknowledge work needs to be done, but to defer that work until it can be scheduled. The wait module and the work module are the star additions.
 
-- In [Waitqueues](waitqueues.md) we step through a waitqueue implementation allowing processes to change their state and yield the processor until a triggering event wakes them up to resume.
-- [The Kernel Workqueue](workqueue.md) has us create our first bona-fide cake thread, a workqueue to allow functions to be deffered until they can be executed in process context.
+- In [Waitqueues](waitqueues.md) we step through a waitqueue implementation allowing processes to change their state and yield the processor until a triggering event wakes them to resume.
+- [The Kernel Workqueue](workqueue.md) has us create our first bona-fide cake thread, a workqueue to allow functions to be deferred until they can be scheduled.
 
-*Previous Chapter* [Chapters[7]: Scheduling and Processes](../chapter7/chapter7.md) | *Next Chapter* [Chapters[9]: Virtual Memory and Fake Partition](../chapter9/chapter9.md)  
-*Previous Page* [What the Fork!?](../chapter7/fork.md)  |  *Next Page* [Waitqueues](waitqueues.md)
+*Previous Page* [What the Fork!?](../chapter07/fork.md)  |  *Next Page* [Waitqueues](waitqueues.md)  
+*Previous Chapter* [Chapters[7]: Scheduling and Processes](../chapter07/chapter7.md) | *Next Chapter* [Chapters[9]: Virtual Memory](../chapter09/chapter9.md)
