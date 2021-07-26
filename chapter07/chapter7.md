@@ -1,11 +1,12 @@
-*Previous Chapter* [Chapters[6]: Memory Allocation](../chapter6/chapter6.md) | *Next Chapter* [Chapters[8]: Working and Waiting](../chapter8/chapter8.md)  
-*Previous Page* [Slab Allocator with Object Caches](../chapter6/slab.md)  |  *Next Page* [Processes and PIDs](processes.md)
+*Previous Chapter* [Chapters[6]: Memory Allocation](../chapter06/chapter6.md) | *Next Chapter* [Chapters[8]: Working and Waiting](../chapter08/chapter8.md)  
+*Previous Page* [Slab Allocator with Object Caches](../chapter06/slab.md)  |  *Next Page* [Processes and PIDs](processes.md)
 
 ## Chapters[7]: Scheduling and Processes
 
 #### What We're Baking With
 
 ```bash
+ccos4rbpi:~$ tree
 .
 ├── Makefile
 ├── arch
@@ -90,11 +91,11 @@
     └── schedule.c
 ```
 
-By the conclusion of this chapter, we will have an operational scheduler, capable of context switching. We will also have an internal working implementation of process cloning, allowing us to demonstate the birth of new processes.
+By the conclusion of this chapter, we will have coded an operational scheduler capable of context switching. We will also have working kernel implementation of process cloning, allowing us to exhibit the birth of new processes.
 
-- In [Processes and PIDs](processes.md) we introduce the structures to be used by the scheduler, as well as a basic pid-assignment module.
-- [Scheuling with Runqueues](scheduler.md) sees us implement the scheduling and context-switching algorithms.
-- [What the Fork!?](fork.md) shows the culmination of much of the implementation thus far, by implementing a cloning function to dynamically create new processes.
+- In [Processes and PIDs](processes.md) we introduce the structures used by the scheduler, as well as a pid-assignment module.
+- [Scheduling with Runqueues](scheduler.md) takes us through the scheduling and context-switching algorithms.
+- [What the Fork!?](fork.md) is the culmination of much of the volume thus far, producing a cloning function to dynamically create new processes.
 
-*Previous Chapter* [Chapters[6]: Memory Allocation](../chapter6/chapter6.md) | *Next Chapter* [Chapters[8]: Working and Waiting](../chapter8/chapter8.md)  
-*Previous Page* [Slab Allocator with Object Caches](../chapter6/slab.md)  |  *Next Page* [Processes and PIDs](processes.md)
+*Previous Page* [Slab Allocator with Object Caches](../chapter06/slab.md)  |  *Next Page* [Processes and PIDs](processes.md)  
+*Previous Chapter* [Chapters[6]: Memory Allocation](../chapter06/chapter6.md) | *Next Chapter* [Chapters[8]: Working and Waiting](../chapter08/chapter8.md)
