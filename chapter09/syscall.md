@@ -5,19 +5,19 @@
 
 #### The System Call Interface 
 
-Admitttedly, it is a bit strange to stick a section on system calls into the virtual memory chapter. However, the virtual memory abstraction dividing user space and kernel space depends on system calls. The interface allows a mini-context switch of sorts from user mode to kernel mode. The stack pointer changes, as does the active page table, from `TTBR0_EL1` to `TTBR1_EL1`. The virtual memory idea cannot be demonstrated with out system calls so that user space can access the hardware the kernel manages for output. Finally, the system call interface is too simple to justify its own chapter. So, here it is, smack in the middle of virtual memory.
+Admittedly, it is a bit strange to stick a section on system calls into the virtual memory chapter. However, the division of user space and kernel space, and their separate address spaces, depends on system calls. The interface allows a mini-context switch of sorts from user mode to kernel mode. The stack pointer changes, as does the active page table, from `TTBR0_EL1` to `TTBR1_EL1`. The virtual memory idea cannot be demonstrated without system calls so that user space can access the hardware the kernel manages for output. Finally, the system call interface is a bit simple to justify its own chapter. So, here it is, smack in the middle of virtual memory.
 
 #### C Library
 
-On a typical GNU Linux system, system calls are generally provided by the `C` Library. The library will, under the covers, wrap the system calls, hiding the details from the user. The `printf` function, for example, will wrap the `write` system call, generally using STDOUT as the file descriptor. It is also possible to call `write` directly, if you 
+On a typical GNU Linux system, system calls are generally provided by the _C_ library. The library will, under the covers, wrap system calls, hiding the details from the user. The `printf` function, for example, will wrap the `write` system call, possibly using STDOUT as the file descriptor. It is also possible to call `write` directly, if you 
 
 ```C
 #include <unistd.h>
 ```
 
-Though the compiler will somehow need to know how to convert the function name to the proper assembly to invoke the correct system call. 
+The compiler needs to know how to convert the function name to the proper assembly to invoke the correct system call. 
 
-From the kernel's perspective, a system call is represented simply by a number. That number serves as an index into an array of functions. All that is needed is for a program to invoke a system call like
+From the kernel's perspective, a system call is represented simply by a number. That number serves as an index into an array of functions. All we need is for a user program to invoke a system call like:
 
 ```asm
 #define SYSCALL_MYSCALL     SOME_NOMINAL_INTEGER
@@ -28,7 +28,7 @@ __mysyscall:
     ret
 ```
 
-This will cause an exception, a transition between `EL0` and `EL1`. The kernel can access the system call number from the `w8` register, and assumes the first eight arguments, those in registers `x0`-`x7` are input parameters. For CheesecakeOS, we will implement system calls from a mini-`C` library in just this way.
+The `svc` call will generate an exception, a transition between `EL0` and `EL1`. The kernel can access the system call number from the `w8` register, and assumes the first eight arguments, those in registers `x0`-`x7` are input parameters. For CheesecakeOS, we will implement system calls from a _mini-C_ library in just this way.
 
 For the purpose of getting started, we will create our first user space program, `sayhello`, with source located in [arch/arm64/user/sayhello.c](code2/arch/arm64/user/sayhello.c):
 
@@ -50,7 +50,7 @@ int say_hello()
 }
 ```
 
-While user space programs can do lots of processing without moving to kernel space with system calls, none of this action is visable to you until some output appears. In the case of the `say_hello` function, two system calls are invoked, `sayhello`, and `usloopsleep`. Both system calls are implemented in our mini-`C` library, [arch/arm64/user/libc.c](code2/arch/arm64/user/libc.c):
+While user space programs can do loads of CPU processing without system calls, none of this action is visible to the user until some output appears. In the case of the `say_hello` function, two system calls are invoked, `sayhello`, and `usloopsleep`. Both system calls are implemented in our _mini-C_ library, [arch/arm64/user/libc.c](code2/arch/arm64/user/libc.c):
 
 ```C
 extern long __sayhello();
@@ -136,11 +136,11 @@ long sys_usloopsleep()
 }
 ```
 
-So it is quite clear the user space `sayhello` program will run in a loop, printing `CPU #0 SAYS HELLO!`, and then waiting for an interrupt. Whenever we need to add a system call, we will follow the procedure here. The `C` library wrapper function is implemented in `arch/arm64/user/libc.c`, and the `svc` with the correct system call number is defined in `arch/arm64/user/libc.S`. The system call number is added to the user space system call include file in `arch/arm64/user/include/user/syscall.h`, and a corresponding entry added to the system call table in `arch/arm64/syscall.c`. That table entry will reference the system call name, `sys_` prepended, a function that will be implemented somewhere in the kernel code.
+So it is quite clear the user space `sayhello` program will run in a loop, printing `CPU #0 SAYS HELLO!`, and then waiting for an interrupt. Whenever we need to add a system call, we will follow the procedure here. The _C_ library wrapper function is implemented in `arch/arm64/user/libc.c`, and the `svc` with the correct system call number is defined in `arch/arm64/user/libc.S`. The system call number is added to the user space system call include file in `arch/arm64/user/include/user/syscall.h`, and a corresponding entry added to the system call table in `arch/arm64/syscall.c`. That table entry will reference the system call name, `sys_` prepended, a function implemented somewhere in the kernel code.
 
 #### System Call Entry
 
-The system call interface is set, from the perspective of user space. From the kernel, we still need to properly handle the exception generated by the `svc` call. In [arch/arm64/entry.S](code2/arch/arm64/entry.S), in the `__sync_el064` routine, there is now an additional synchronous abort handler, for the case of an `svc` call:
+The system call interface is set, from the perspective of user space. From the kernel, we still need to handle the exception generated by the `svc` call. In [arch/arm64/entry.S](code2/arch/arm64/entry.S), in the `__sync_el064` routine, there is now an additional synchronous abort handler, for the case of an `svc` call:
 
 ```asm
 __sync_el064:
@@ -177,15 +177,15 @@ __el0_svc:
 ```
 
 The assembly system call handler:
-1. The system call table (which is page alligned) is loaded into `x27` 
-2. The system call number in `w8` is zero extended into `x26`
-3. The total number of system calls is moved into `x25`
-4. IRQs are enabled
-5. If the number provided is larger than the number of system calls, an invalid syscall number was given
-6. Oterwise, the address of the system call function to run is loaded into `x16`
-7. The system call function is executed
+1. Loads the system call table (which is page aligned) into `x27` 
+2. Zero extends the system call number from `w8` into `x26`
+3. Moves the number of system calls into `x25`
+4. Enables IRQs
+5. If the system call number provided is larger than the number of system calls, an invalid system call number was given
+6. Otherwise, loads the address of the system call function into `x16`
+7. Branches to the system call function
 
-Registers `x0` through `x7` were left untouched. These registers hold the arguments for a given system call. Up to eight arguments are supported. When the system call returns, control branches to the `__ret_from_syscall` routine:
+Registers `x0` through `x7` are left untouched. These registers hold the arguments for a system call. Up to eight arguments are supported. When the system call returns, control branches to the `__ret_from_syscall` routine:
 
 ```asm
 __ret_from_syscall:
@@ -205,11 +205,11 @@ __ret_to_user:
 
 The routine replaces the value of the `x0` register saved on the stack with the return value from the system call. Thus, when `__ENTRY_RESTORE` runs, returning to user space, the application will have the return value of the system call available in the architecturally correct register. This is how the kernel communicates back to user space.
 
-After updating the return value, `__ret_to_user` is called, IRQs are diabled, and `__ENTRY_RESTORE` restores state before returning to user space.
+After updating the return value, control branches to `__ret_to_user`, IRQs are disabled, and `__ENTRY_RESTORE` restores state before returning to user space.
 
-It is not a coincidene that `__ret_to_user` appears directly after `__ret_from_fork`. In the next section, we will finally create our first user space process. We do this by first creating a kernel thread that begins at `__ret_from_fork`, as all other threads. After we have carefully manipulated the process state, we will return from the kernel thread function, and `__ret_from_user` will take the process into user mode.
+It is not a coincidence `__ret_to_user` appears directly after `__ret_from_fork`. In the next slice, we will finally create our first user space process. We do this by first creating a cake thread that begins at `__ret_from_fork`, as all other threads. After we have carefully manipulated the process state, we will return from the cake thread function, and fall through. Then `__ret_to_user` will take the process into user mode.
 
-Now that the system call interface has been established from both ther kernel and user perspective, it is a good idea to go back and fill in the `copy_arch_context` function from [arch/arm64/process.c](code2/arch/arm64/process.c). Prevously, we left the `else` clause empty, the case where the flags do _not_ indicate a kernel thread. This has been updated:
+Now the system call interface has been established from both kernel and user perspectives, we may go back and fill in the `copy_arch_context` function from [arch/arm64/process.c](code2/arch/arm64/process.c). Previously, we left the `else` clause empty, the case where the flags do _not_ indicate a kernel thread. Now we fill in:
 
 ```C
 #define PROCESS_STACK_SAVE_REGISTERS(p) \
@@ -241,15 +241,15 @@ int copy_arch_context(unsigned long flags,
 }
 ```
 
-Let us see if we can make sense of this function as a whole. Whenever a new process is created, it has a brand new kernel stack allocated to it, saved in the `stack` field. All new processes are birthed into the `__ret_from_fork` routine, and all have the kernel stack pointer set to the top of the kernel stack, minus the size of one `struct stack_save_registers`, the value captured in the `ssr` pointer by the `PROCESS_STACK_SAVE_REGISTERS` macro. When our kernel thread ultimately returns to become the first user space process, `__ENTRY_RESTORE` will be executed. The process will then enter userspace with the kernel stack empty, pointing to the very top address, as `__ENTRY_RESTORE` will increment the stack pointer by the size of one `struct stack_save_registers`. 
+Let us see if we can make sense of this function as a whole. Whenever a new process is created, it has a fresh kernel stack allocated, saved in the `stack` field. All new processes are birthed into the `__ret_from_fork` routine, and all have the kernel stack pointer set to the top of the stack, minus the size of one `struct stack_save_registers`, the value captured in the `ssr` pointer by the `PROCESS_STACK_SAVE_REGISTERS` macro. When one cake thread ultimately returns to become the first user space process, `__ENTRY_RESTORE` will be executed. The process will then enter user space with the kernel stack empty, pointing to the very top address, as `__ENTRY_RESTORE` will increment the stack pointer by the size of one `struct stack_save_registers`. 
 
-The only way for a user process to be created after that point is by using a system call to enter the kernel and run the `do_clone` function. At entry into the system call, the user space process's registers and state will be saved on the stack, starting from the very top, in a space the size of one `struct stack_save_registers`. The stack pointer will be decremented by this amount. In the `copy_arch_process` function that save state is accessed and copied in the line
+The only way for a user process to be created after that point is by using a system call to enter the kernel and run the `do_clone` function. At entry into the system call, the user space process's registers and state will be saved on the stack, starting from the very top, in a space the size of one `struct stack_save_registers`. The stack pointer will be decremented by this amount. In the `copy_arch_process` function that saved state is accessed and copied in the line
 
 ```C
         *ssr = *PROCESS_STACK_SAVE_REGISTERS(CURRENT);
 ```
 
-We know the state exists at that exact location - we set it up to be so. The cloned child process will be setup with the exact state as the forked parent, including general purpose registers and the value to be placed in the `Exception Link Register`. Finally, because this is a forking operation, where the parent receives the pid of the child, but the child receives the value zero, the stack is updated so that when a newly forked process does return, the value zero appears in `x0`:
+We know the state exists at that exact location - we set it up to be so. The cloned child process will be initialized with the exact state as the forked parent, including general purpose registers and the value to be placed in the `Exception Link Register`. Finally, because this is a forking operation, where the parent receives the PID of the child, but the child receives the value zero, the stack is updated so that when a newly forked process does return, the value zero appears in `x0`:
 
 ```C
         ssr->regs[0] = 0;
@@ -259,7 +259,7 @@ So the logic hangs together nicely. Reason about it for a while, and see if you 
 
 #### Building
 
-System calls only make sense from user space. The system call handler only handles synchronous aborts from a lower exeception level. So, though our CheesecakeOS has no file system, we need a way to partition our user space applications and `C`-library responsible for making user space calls away from the rest of the kernel. In order to do this, we add special partitioning variables to the [arch/arm64/linker.template](code2/arch/arm64/linker.template) linker file, so that all source files in the `arch/arm64/user` directory will be located in its own special parition of the kernel image:
+System calls only make sense from user space. The system call handler only handles synchronous aborts from a lower exception level. So, though our CheesecakeOS has no file system, we need a way to partition our user space applications and _C_-library responsible for making user space calls away from the rest of the kernel. In order to do this, we add special partitioning variables to the [arch/arm64/linker.template](code2/arch/arm64/linker.template) linker file, so that all source files in the `arch/arm64/user` directory will be located in their own special space:
 
 ```
 OUTPUT_ARCH(aarch64)
@@ -344,7 +344,7 @@ SECTIONS
 }
 ```
 
-It isn't especially elegant, but the kernel `.text`, `.rodata`, `.data` and `.bss` sections all exclude inputs from the user directory. Instead, those inputs are included in the special parition, bounded by a number of linker variable accesable to the kernel. The [Makefile](code2/Makefile) has also been updated to accomodate this. Building the project gives the address map of the image in `.build/kernel8.map` , where we can verify this paritioning:
+It isn't especially elegant, but the kernel `.text`, `.rodata`, `.data` and `.bss` sections all exclude inputs from the user directory. Instead, those inputs are included in the special partition, bounded by a number of linker variables accessible to the kernel. The [Makefile](code2/Makefile) has updates to accommodate. Building the project gives the address map of the image in `.build/kernel8.map` , where we can verify the partitioning:
 
 ```
 ffff000000400000 T _user_begin
@@ -367,9 +367,9 @@ ffff000000603000 B _user_bss_end
 ffff000000603000 B _user_end
 ```
 
-Notice also the variables `user_rodata`, `user_data`, and `user_bss` that were defined in [arch/arm64/user/say_hello.c](code2/arch/arm64/user/say_hello.c) and faithfully linked into the correct sections. Loading our Raspberry Pi 4 with this image and running still won't show any updated behavior. We will finally be able to move forward in the next section:
+Check the variables `user_rodata`, `user_data`, and `user_bss` that were defined in [arch/arm64/user/say\_hello.c](code2/arch/arm64/user/say_hello.c) and faithfully linked into the correct sections. Loading our Raspberry Pi 4 with this image and running still won't show any updated behavior. We will only complete our mission in the next slice:
 
 ![Raspberry Pi System Cheesecake](images/0903_rpi4_system.png)
 
-*Chapter Top* [Chapters[9]: Virtual Memory](chapter9.md) | *Next Chapter* [Chapters[10]: The TTY Driver and File Abstraction](../chapter10/chapter10.md)  
-*Previous Page* [The Page Fault Handler](pagefault.md) | *Next Page* [Executing Into User Space](exec.md)
+*Previous Page* [The Page Fault Handler](pagefault.md) | *Next Page* [Executing Into User Space](exec.md)  
+*Chapter Top* [Chapters[9]: Virtual Memory](chapter9.md) | *Next Chapter* [Chapters[10]: The TTY Driver and File Abstraction](../chapter10/chapter10.md)
