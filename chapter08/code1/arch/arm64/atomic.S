@@ -19,34 +19,34 @@
 
 .globl __atomic64_fetch_or
 __atomic64_fetch_or:
-    prfm 	pstl1strm, [x0]
+    prfm    pstl1strm, [x0]
 1:
-    ldxr 	x2, [x0]
-    orr 	x3, x2, x1
-    stlxr 	w4, x3, [x0]
-    cbnz 	w4, 1b
-    dmb 	ish	
-    mov 	x0, x2
+    ldxr    x2, [x0]
+    orr     x3, x2, x1
+    stlxr   w4, x3, [x0]
+    cbnz    w4, 1b
+    dmb     ish
+    mov     x0, x2
     ret
 
 .globl __atomic64_or
 __atomic64_or:
-    prfm 	pstl1strm, [x0]
+    prfm    pstl1strm, [x0]
 1:
-    ldxr 	x2, [x0]
-    orr 	x2, x2, x1
-    stxr 	w3, x2, [x0]
-    cbnz 	w3, 1b
+    ldxr    x2, [x0]
+    orr     x2, x2, x1
+    stxr    w3, x2, [x0]
+    cbnz    w3, 1b
     ret
 
 .globl __atomic64_andnot
 __atomic64_andnot:
-    prfm 	pstl1strm, [x0]
+    prfm    pstl1strm, [x0]
 1:
-    ldxr 	x2, [x0]
-    bic 	x2, x2, x1
-    stxr 	w3, x2, [x0]
-    cbnz 	w3, 1b
+    ldxr    x2, [x0]
+    bic     x2, x2, x1
+    stxr    w3, x2, [x0]
+    cbnz    w3, 1b
     ret
 
 .globl __cmpxchg_relaxed
