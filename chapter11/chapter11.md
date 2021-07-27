@@ -129,10 +129,10 @@
 
 As we left things in the previous chapter, our shell application and its child were both fighting for the same TTY resource. With no job control mechanism, there was no good way to let the shell know to yield the TTY input and output capabilities to the `cat` program. We are going to try our hand at rectifying the issue in this chapter.
 
-We will be implementing signals. Singals give processes a way to talk to (or bludgeon) each other. One process, or the kernel, can request to another to stop or resume processing. The TTY module can keep track of the process that should control the I/O resource and ask others to suspend execution until signaled to resume.
+We will be implementing signals. Signals give processes a way to talk to (or bludgeon) each other. One process, or the kernel, can request to another to stop or resume processing. The TTY module can keep track of the process that should control the I/O resource and ask others to suspend execution until signaled to resume.
 
 - In [Sending](sending.md) we have the TTY send a stop signal to any process that tries to read and write when that process is not the session leader (TTY owner).
 - In [Receiving](receiving.md) we demonstrate our baby shell is able to catch a `SIGCHLD` signal from a child process.
 
-*Previous Chapter* [Chapters[10]: The TTY Driver with File Abstraction](../chapter10/chapter10.md) | *Next Chapter* [Chapters[12]: The Shell](../chapter12/chapter12.md)  
-*Previous Page* [Embryonic Shell](../chapter10/shell.md)  |  *Next Page* [Sending](sending.md)
+*Previous Page* [Embryonic Shell](../chapter10/shell.md)  |  *Next Page* [Sending](sending.md)  
+*Previous Chapter* [Chapters[10]: The TTY Driver with File Abstraction](../chapter10/chapter10.md) | *Next Chapter* [Chapters[12]: The Shell](../chapter12/chapter12.md)
