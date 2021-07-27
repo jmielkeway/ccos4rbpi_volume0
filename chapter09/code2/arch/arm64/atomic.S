@@ -39,7 +39,7 @@ __atomic64_add_return:
     mov     x0, x2
     ret
 
-.globl __atomic64_add_return_relaxed	
+.globl __atomic64_add_return_relaxed
 __atomic64_add_return_relaxed:
     prfm    pstl1strm, [x0]
 1:
