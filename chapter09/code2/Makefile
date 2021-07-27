@@ -73,6 +73,7 @@ kernel8.img: $(BUILD_DIR)/linker.ld \
 	$(ARMCCC)-ld -T $(BUILD_DIR)/linker.ld \
         -o $(BUILD_DIR)/kernel8.elf  \
         $(ARCH_OBJ_FILES)            \
+        $(USER_OBJ_FILES)            \
         -L$(LIB_DIR)                 \
         -lboard -lcheesecake -lboard
 	$(ARMCCC)-objdump -D $(BUILD_DIR)/kernel8.elf > $(BUILD_DIR)/kernel8.dsa
