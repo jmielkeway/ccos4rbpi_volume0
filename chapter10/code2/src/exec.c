@@ -36,6 +36,7 @@ extern long _user_data_begin[];
 extern long _user_data_end[];
 extern long _user_bss_begin[];
 extern long _user_bss_end[];
+extern long _user_end[];
 extern long _end[];
 
 static struct virtualmem *user_vm_segment(unsigned long start_addr, unsigned long end_addr,
@@ -136,7 +137,7 @@ long do_exec(int (*user_function)(void), int init)
         goto nomem;
     }
     ssr = PROCESS_STACK_SAVE_REGISTERS(current);
-    heap_start = VIRT_TO_PHYS((unsigned long) _user_text_end) + SECTION_SIZE - 1;
+    heap_start = VIRT_TO_PHYS((unsigned long) _user_end) + SECTION_SIZE - 1;
     heap_start &= SECTION_MASK;
     heap_start += FIRST_USER_ADDRESS;
     program_counter = (unsigned long) user_function;
@@ -209,4 +210,3 @@ long sys_exec(int (*user_function)(void))
 {
     return do_exec(user_function, 0);
 }
-

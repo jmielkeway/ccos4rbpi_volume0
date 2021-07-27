@@ -109,6 +109,7 @@ extern long _user_data_begin[];
 extern long _user_data_end[];
 extern long _user_bss_begin[];
 extern long _user_bss_end[];
+extern long _user_end[];
 extern long _end[];
 ```
 
@@ -139,7 +140,7 @@ In `do_exec`, six virtual memory pointers are setup on the stack, one for each o
 A new `struct memmap` is allocated (`alloc_memmap` is defined in [src/fork.c](code3/src/fork.c), as that is where the `memmap_cache` lives), and the `ssr` variable contains the address of the `struct stack_save_registers` containing the exception state stored on the kernel stack.
 
 ```C
-    heap_start = VIRT_TO_PHYS((unsigned long) _user_text_end) + SECTION_SIZE - 1;
+    heap_start = VIRT_TO_PHYS((unsigned long) _user_end) + SECTION_SIZE - 1;
     heap_start &= SECTION_MASK;
     heap_start += FIRST_USER_ADDRESS;
 ```
