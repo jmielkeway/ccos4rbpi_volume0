@@ -1,11 +1,11 @@
 *Chapter Top* [Chapters[11]: Signals](chapter11.md) | *Next Chapter* [Chapters[12]: The Shell](../chapter12/chapter12.md)  
-*Previous Page* [Embryonic Shell](../chapter10/shell.md) | *Next Page* [Receiving](receiving.md)
+*Previous Page* [Chapters[11]: Signals](chapter11.md) | *Next Page* [Receiving](receiving.md)
 
 ## Sending ([chapter11/code0](code0))
 
 #### TTY Job Control
 
-Our current woes concern a lack of job control, and so job control is where we will start. The TTY driver maintains a record of which process should control the TTY I/O. The TTY resource is managed by a session leader - generally the shell - that communicates to the TTY which process has ownership. The `struct tty` has been updated in [include/cake/tty.h](code0/include/cake/tty.h) allowing for a `pid_leader` to be set by the session leader and stored for use in the tty module:
+Our current woes concern a lack of job control, and so job control is where we will start. The TTY driver maintains a record of which process should control the TTY I/O. The TTY resource is managed by a session leader - generally the shell - that communicates to the TTY which process has ownership. The `struct tty` has been updated in [include/cake/tty.h](code0/include/cake/tty.h) allowing for a `pid_leader` to be set by the session leader and stored for use in the TTY module:
 
 ```C
 struct tty {
@@ -21,7 +21,7 @@ struct tty {
 };
 ```
 
-At the top of both `n_tty_read` and `n_tty_write` functions in [src/tty.c](code0/src/tty.c), `n_tty_check_job_ctl` is checked to ensure the executing pid is the `pid_leader`:
+At the top of both `n_tty_read` and `n_tty_write` functions in [src/tty.c](code0/src/tty.c), `n_tty_check_job_ctl` is checked to ensure the executing `pid` is the `pid_leader`:
 
 ```C
 static int n_tty_check_jobctl(struct tty *tty, int signal) {
@@ -37,7 +37,7 @@ static int n_tty_check_jobctl(struct tty *tty, int signal) {
 }
 ```
 
-In the case the current pid is _not_ the `pid_leader`, the TTY driver sends a signal to the pid by calling `do_signal` with the `signal` argument.
+In the case the current `pid` is _not_ the `pid_leader`, the TTY driver sends a signal to the `pid` by calling `do_kill` with the `signal` argument.
 
 When the session leader wants to communicate a new `pid_leader` to the TTY module, it uses the `ioctl` system call. The `sys_ioctl` implementation follows a similar format to `sys_read` and `sys_write` in [src/file.c](code0/src/file.c):
 
@@ -74,13 +74,13 @@ static int tty_ioctl(struct file *file, unsigned int command, unsigned long arg)
 }
 ```
 
-The TTY ioctl only supports one command - the command to switch the `pid_leader`, and as a result, the `command` argument is not used. After grabbing a reference to the process represented by the pid, to ensure it exists, the operation simply sets the given pid as the `pid_leader` of the `struct file`'s underlying `struct pid`.
+The `tty_ioctl` only supports one command - the command to switch the `pid_leader`, and as a result, the `command` argument is not used. After grabbing a reference to the process identified by the `pid`, to ensure it exists, the operation simply sets the given `pid` as the `pid_leader` of the `struct file`'s underlying `struct tty`.
 
 The stage has been set. The outline of how job control works is clear. On to making signals flow through the system.
 
 #### Signal Structures
 
-A signal is represented as a small positive integer with some interpretation. The CheesecakeOS signals are defined in the user space header [arch/arm64/user/include/user/signal.h](code0/arch/arm64/user/include/user/signal.h), allowing user space applications access to the macro definitions:
+A signal is presented as a small positive integer with some interpretation. The CheesecakeOS signals are defined in the user space header [arch/arm64/user/include/user/signal.h](code0/arch/arm64/user/include/user/signal.h), allowing user space applications access to the macro definitions:
 
 ```C
 #define SIGINT          1
@@ -94,7 +94,7 @@ A signal is represented as a small positive integer with some interpretation. Th
 #define SIGTTOU         9
 ```
 
-At a Linux/bash terminal, entering the command `man signal` gives information on what the various signals mean. Many signals have the same default behaviors. Most signals have default behaviors that can be overwritten with a user space function called a _signal handler_. A signal handler defined in an application may catch a signal of a certain type, and then send itself snother signal with the same default behavior.
+At a Linux/bash terminal, entering the command `man signal` gives information on what the various signals mean. Many signals have the same default behaviors. Most signals have default behaviors that can be overwritten with a user space function called a _signal handler_. A signal handler defined in an application may catch a signal of a certain type, and then send itself another signal with the same default behavior.
 
 The majority of the signal structures we will be working with are defined in [include/cake/signal.h](code0/include/cake/signal.h). The mother signal structure is the `struct signal`:
 
@@ -153,7 +153,7 @@ struct sighandler {
 };
 ```
 
-The `struct sigaction` is defined back in [arch/arm64/user/include/user/signal.h](code0/arch/arm64/user/include/user/signal.h). The `struct sigaction` defines a signal handler, and its accesability to user space allows user applications to register their custom signal handlers:
+The `struct sigaction` is defined back in [arch/arm64/user/include/user/signal.h](code0/arch/arm64/user/include/user/signal.h). The `struct sigaction` defines a signal handler, and its accessibility to user space allows user applications to register their custom signal handlers:
 
 ```C
 struct sigaction {
@@ -174,7 +174,7 @@ struct sigqueue {
 };
 ```
 
-The `struct siginfo` allocation contains information about the signal passed from sender to receiver:
+The `struct siginfo` structure contains information about the signal passed from sender to receiver:
 
 ```C
 struct siginfo {
@@ -195,7 +195,7 @@ struct siginfo {
 
 #### Sending Signals
 
-When the TTY module wants to send a signal to a process because it has tried to access the TTY functions without being the `pid_leader`, it calls `do_kill` with the given pid and signal. The `do_kill` function is defined in [src/signal.c](code0/src/signal.c):
+When the TTY module wants to send a signal to a process because it has tried to access the TTY functions without being the `pid_leader`, it calls `do_kill` with the given `pid` and `signal`. The `do_kill` function is defined in [src/signal.c](code0/src/signal.c):
 
 ```C
 int do_kill(int pid, int signal)
@@ -212,7 +212,7 @@ int do_kill(int pid, int signal)
 }
 ```
 
-If the target pid is a valid pid, `send_signal` is called. The `send_signal` functon is quite involved, so we step through piece by piece:
+If the target `pid` is a valid PID, `send_signal` is called. The `send_signal` function is quite involved, so we step through piece by piece:
 
 ```C
 #define SIGMASK(signal)     ((1UL) << signal)
@@ -231,7 +231,7 @@ static int send_signal(int signo, struct siginfo *info, struct process *p)
     }
 ```
 
-The `signal`'s lock is acquired. If the `signo` being sent is in the set of signals that represent stops in the kernel, continue signals are cleared. The `signal_clear` function clears the pending bit for any signals in the `signal_mask`, and also removes those `struct siqueue` objects that have signals included in that mask.
+The `signal`'s lock is acquired. If the `signo` being sent is in the set of signals that represent stops in the kernel, continue signals are cleared. The `signal_clear` function clears the pending bit for any signals in the `signal_mask`, and also removes those `struct siqueue` objects that have signals included in that mask:
 
 ```C
 static void signal_clear(struct signal *signal, unsigned long signal_mask)
@@ -276,7 +276,7 @@ Signals of the same type do not queue. If the pending bit for the input `signo` 
     list_enqueue(&(signal->signallist), &(q->list));
 ```
 
-For the long-path, a new `struct sigqueue` object is allocated from the `sigqueue_cache`, which is initalized during startup:
+For the long-path, a new `struct sigqueue` object is allocated from the `sigqueue_cache`, which is initialized during startup:
 
 ```C
 static struct cache *sigqueue_cache;
@@ -287,7 +287,7 @@ void signal_init()
 }
 ```
 
-After the new queue object is created, the `info` field is setup:
+After creating the new queue object, the `info` field is setup:
 
 ```C
     switch((unsigned long) info) {
@@ -318,14 +318,14 @@ unlock:
 
 The function ends by
 - Setting the bit corresponding to the sent signal in the `struct signal`'s pending bitmap
-- Waking the target process up, in the case the process's state is interruptable
+- Waking the target process up, in the case the process's state is interruptible
 - Releasing the lock
 
 The target process should now have a pending signal.
 
 #### Test Driving Sending Signals
 
-In the [next section](receiving.md) on receiving signals, we will demonstrate a user space process receiving a signal, and, in response, executing a custom signal handler. But before we arrive, there is a bit of plumbing we can take of now. To begin, the forking process has to be ammended to account for the new signal object, as in [src/fork.c](code0/src/fork.c). The `copy_process` function now allocates a new `struct signal` structure:
+In the next slice on [receiving signals](receiving.md), we will demonstrate a user space process receiving a signal, and, in response, executing a custom signal handler. But before we arrive, we can grease the pan a bit. To begin, the forking process has to be amended to account for the new signal object, as in [src/fork.c](code0/src/fork.c). The `copy_process` function now allocates a new `struct signal` structure:
 
 ```C
 static struct cache *signal_cache;
@@ -379,7 +379,7 @@ static long copy_signal(struct process *p)
 }
 ```
 
-We also want to ammend the setup of the shell program in [arch/arm64/user/shell.c](code0/arch/arm64/user/shell.c):
+We also want to extend the setup of the shell program in [arch/arm64/user/shell.c](code0/arch/arm64/user/shell.c):
 
 ```C
 int shell()
@@ -396,7 +396,7 @@ int shell()
     ioctl(STDOUT, 0, shell_pid);
 ```
 
-Here, the system call `getpid` returns the pid of the current process. The intuitive implementation lives in [src/pid.c](code0/src/pid.c):
+Here, the system call `getpid` returns the `pid` of the current process. The intuitive implementation lives in [src/pid.c](code0/src/pid.c):
 
 ```C
 int sys_getpid()
@@ -405,7 +405,7 @@ int sys_getpid()
 }
 ```
 
-With the pid available, the shell, implicit TTY session leader, sets itself as the TTY's `pid_leader` with an `ioctl` system call to both STDIN, and STDOUT. They point, of course, to the same file object, but the duplication does not hurt.
+With the `pid` available, the shell, implicit TTY session leader, sets itself as the TTY's `pid_leader` with an `ioctl` system call to both STDIN, and STDOUT. They point, of course, to the same file object, but the duplication does not hurt.
 
 Finally, we will want to update [arch/arm64/entry.S](code0/arch/arm64/entry.S) to have the kernel check for a process's pending signals on each return to user space. Currently, this means after each IRQ from `EL0`, and after each `EL0` synchronous abort. The `check_and_process_signals` function will handle the logic, and is called in the `__ret_to_user` routine:
 
@@ -433,11 +433,11 @@ void check_and_process_signals(struct stack_save_registers *ssr)
 }
 ```
 
-The `check_and_process_signals` function will get proper attention in the next section as the launching point for processing a task's signals, or, colloqueally, a task _receiving_ a signal.With what we have now, our `shell` program and the `cat` program it runs will not both have access to the TTY. Only the shell will, as the registered `pid_leader`. Of course, the `cat` program won't run, and we have ugly debug statements for a process that receives a signal. But these are problems for the future.
+The `check_and_process_signals` function will get proper attention in the next slice as the launching point for a task _receiving_ a signal. With what we have now, our `shell` program and the `cat` program it runs will not both have access to the TTY. Only the shell will, as the registered `pid_leader`. Of course, the `cat` program will not visibly run, and we have ugly debug statements for a process that receives a signal. But these are problems for the future.
 
 For now, fearlessly build and run CheesecakeOS, and see what happens:
 
 ![Raspberry Pi Sending Cheesecake](images/1101_rpi4_sending.png)
 
-*Chapter Top* [Chapters[11]: Signals](chapter11.md) | *Next Chapter* [Chapters[12]: The Shell](../chapter12/chapter12.md)  
-*Previous Page* [Embryonic Shell](../chapter10/shell.md) | *Next Page* [Receiving](receiving.md)
+*Previous Page* [Chapters[11]: Signals](chapter11.md) | *Next Page* [Receiving](receiving.md)  
+*Chapter Top* [Chapters[11]: Signals](chapter11.md) | *Next Chapter* [Chapters[12]: The Shell](../chapter12/chapter12.md)
