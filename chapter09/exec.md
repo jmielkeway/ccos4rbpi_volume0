@@ -9,7 +9,7 @@ Getting our first process in user space requires first setting up a cake thread,
 
 > pid = kernel\_thread(kernel\_init, NULL, CLONE\_FS);
 
-When the thread is scheduled, `kernel_init` will run, and the function trys to run the init process:
+When the thread is scheduled, `kernel_init` will run, and the function tries to run the `init` process:
 
 > if (!try\_to\_run\_init\_process("/sbin/init") ||  
 >     !try\_to\_run\_init\_process("/etc/init") ||  
@@ -24,9 +24,9 @@ Tracing through the `try_to_run_init_process` function, we eventually come to an
 >     (const char \_\_user *const \_\_user *)envp_init);
 > 
 
-Recall that when the kernel thread runs the `return 0`, control will return to the `__ret_from_fork` routine, and control will then pass through to `__ret_from_user`.
+Recall that when the kernel thread runs the `return 0`, control will return to the `__ret_from_fork` routine, then fall through to `__ret_to_user`.
 
-In [src/cheesecake.c](code3/src/cheesecake.c) a second cake thread is initalized:
+In [src/cheesecake.c](code3/src/cheesecake.c) we initialize a second cake thread:
 
 ```C
 extern int startup_user(void *user_function);
@@ -45,7 +45,7 @@ USER_STARTUP_FUNCTION=say_hello
 VA_BITS=48
 ```
 
-The `startup_user` function is board-specfic and defined in [arch/arm64/board/raspberry-pi-4/user.c](code3/arch/arm64/board/raspberry-pi-4/user.c):
+The `startup_user` function is board-specific and defined in [arch/arm64/board/raspberry-pi-4/user.c](code3/arch/arm64/board/raspberry-pi-4/user.c):
 
 ```C
 extern long do_exec(int (*user_function)(void), int init);
@@ -57,7 +57,7 @@ int startup_user(void *user_function)
 }
 ```
 
-For CheesecakeOS as well, `startup_user` will execute after `schedule_tail` in `__ret_from_fork` (from [arch/arm64/entry.S](code3/arch/arm64/entry.S)). When `startup_user` returns, control will fall through to `__ret_to_user`:
+For CheesecakeOS, like in Linux, `startup_user` will execute after `schedule_tail` in `__ret_from_fork` (from [arch/arm64/entry.S](code3/arch/arm64/entry.S)). When `startup_user` returns, control will fall through to `__ret_to_user`:
 
 ```asm
 .globl __ret_from_fork
@@ -73,7 +73,7 @@ __ret_to_user:
 
 #### Inter-Kernel Exec-Type Function
 
-Exec-type functions are generally exported to user space as system calls, so that users can load binary programs. As seen in the Linux example above, the kernel itself may call the underlying function in order to bootstrap the first user space process. Our call to `do_exec` in `startup_user` servers the same purpose. Before diving into `do_exec`, a refersher on the CheesecakeOS user space memory map:
+Exec-type functions are generally exported to user space as system calls, so users can load binary programs. As seen in the Linux example above, the kernel itself may call the underlying function in order to bootstrap the first user space process. Our call to `do_exec` in `startup_user` serves the same purpose. Before diving into `do_exec`, a refresher on the CheesecakeOS user space memory map:
 
 ```
                     ┌───────────────────────────────────────────┐
@@ -93,11 +93,11 @@ Exec-type functions are generally exported to user space as system calls, so tha
                     ├───────────────────────────────────────────┤
                     │         Reference of Read-only Data       │ *.rodata
                     ├───────────────────────────────────────────┤
-                    │   Reference of Read Only Executable Code  │ *.text
+                    │   Reference of Read-only Executable Code  │ *.text
  0x0000000000000000 └───────────────────────────────────────────┘
 ```
 
-An operating system's exec-type system calls are loaders. They are responsible for taking binary from a disk, and loading it into memory with the correct virtual address mappings. In the [src/exec.c](code3/src/exec.c) module, `do_exec` should peform the same duty for CheesecakeOS. Let us step through:
+An operating system's exec-type system calls are loaders. They are responsible for taking binary from a disk, and loading it into memory with the correct virtual address mappings. In the [src/exec.c](code3/src/exec.c) module, `do_exec` should perform the same duty for CheesecakeOS. Let us step through:
 
 ```C
 extern long _user_begin[];
@@ -112,7 +112,7 @@ extern long _user_bss_end[];
 extern long _end[];
 ```
 
-The module makes referience to the linker script variables defining the user space boundries of the image.
+The module makes reference to the linker script variables defining the user space boundaries of the image.
 
 ```C
 long do_exec(int (*user_function)(void), int init)
@@ -144,7 +144,7 @@ A new `struct memmap` is allocated (`alloc_memmap` is defined in [src/fork.c](co
     heap_start += FIRST_USER_ADDRESS;
 ```
 
-The heap is placed at the first section bountry after the `.bss` section. All virtual addresses are then shifted up by the `FIRST_USER_ADDRESS`. In our implementation, the first user address is 0x0000000000000000, but the implementation should work with any value.
+The heap is placed at the first section boundary after the `.bss` section. All virtual addresses are then shifted up by the `FIRST_USER_ADDRESS`. In our implementation, the first user address is 0x0000000000000000, but the implementation should work with any value.
 
 ```C
     program_counter = (unsigned long) user_function;
@@ -154,7 +154,7 @@ The heap is placed at the first section bountry after the `.bss` section. All vi
     }
 ```
 
-The program counter is initalized to be the virtual address of the `user_function` input. At the present, we are considering the case where `do_exec` is called in a cake thread to establish the first user space process. In this case, we set `init` to be true. In all other cases, `do_exec` will be executed from the system call interface, and `init` will be false. The adjustment of the program counter to an offset from `_user_text_begin` only needs to happen once, as user space callers will already have the correct address. To better understand, an example with the output from `.build/kernel8.map`:
+The program counter is initialized to be the virtual address of the `user_function` input. At the present, we are considering the case where `do_exec` is called in a cake thread to establish the first user space process. In this case, we set `init` to be true. In all other cases, `do_exec` will be executed from the system call interface, and `init` will be false. The adjustment of the program counter to an offset from `_user_text_begin` only needs to happen once, as user space callers will already have the correct address. To better understand, an example with the output from `.build/kernel8.map`:
 
 ```
 ***
@@ -165,9 +165,9 @@ ffff000000400028 T usloopsleep
 ***
 ```
 
-When `do_exec` is called from `startup_user`, it is currently passed the address of `say_hello`, 0xFFFF000000400000. This is a kernel range address, inaccessable to user space. Fortunately, we can calculate the virtual address user space should use by taking an offset from `_user_text_begin`, and the program counter is set to the valid user space address 0x000000000000. 
+When `do_exec` is called from `startup_user`, it is passed the address of `say_hello`, 0xFFFF000000400000. This is a kernel range address, inaccessible to user space. Fortunately, we can calculate the virtual address user space should use by taking an offset from `_user_text_begin`, and the program counter is set to the valid user space address 0x000000000000. 
 
-If the `say_hello` program were then to call `do_exec` for some reason, say on `usloopsleep`, no adjustment should be made, as `usloopsleep` should exist in the user space map at 0x0000000000000028, so no offset adjustment will be made after the first call to `do_exec`.
+If the `say_hello` program were then to call `do_exec` for some reason, say on `usloopsleep`, no adjustment should be made, as `usloopsleep` should exist in the user space memory map at 0x0000000000000028, so no offset adjustment will be made after the first call to `do_exec`.
 
 ```C
     user_text = user_vm_segment((unsigned long) _user_text_begin,
@@ -196,7 +196,7 @@ If the `say_hello` program were then to call `do_exec` for some reason, say on `
     }
 ```
 
-For each of the `.text`, `.rodata`, `.data`, and `.bss` sections, `user_vm_segment` is called with the start of the segment range, the end of the segment range, the prot flags, the software flags, the memory map pointer, and a flag to determine whether the memory for the segment should be copied into a newly allocated page. The `user_vm_segment` function:
+For each of the `.text`, `.rodata`, `.data`, and `.bss` sections, `user_vm_segment` is called with the start of the segment range, the end of the segment range, the protection flags, the software flags, the memory map pointer, and a flag to determine whether the memory for the segment should be copied into a newly allocated page. The `user_vm_segment` function:
 
 
 ```C
@@ -212,7 +212,7 @@ static struct virtualmem *user_vm_segment(unsigned long start_addr, unsigned lon
     unsigned long offset = FIRST_USER_ADDRESS - ((unsigned long) _user_begin);
 ```
 
-The boundry ranges passed into `user_vm_segment` are all kernel addresses, as is the `_user_begin` linker script address. Calculating the offset from `_user_begin` converts all addresses to be in the valid user space range. Note that `offset` is an unsigned long, so it is a positive number. The math works because of overflow:
+The boundary ranges passed into `user_vm_segment` are all kernel addresses, as is the `_user_begin` linker script address. Calculating the offset from `_user_begin` converts all addresses to be in the valid user space range. Note that `offset` is an unsigned long, so it is a positive number. The math works because of overflow:
 
 ```C
     vm->mm = mm;
@@ -223,7 +223,7 @@ The boundry ranges passed into `user_vm_segment` are all kernel addresses, as is
     page = &(PTR_TO_PAGE(start_addr));
 ```
 
-We now have two categories of segments we need to consider. Read-only segments, and writable segments. For read-only segments, it is sufficient to directly reference the image page. With writable segments, a copy of the data is necessary. This is because all progams are loaded from the image. If the image page is written directly, it will impact all subsequently loaded programs. For writable segments, `.data` and `.bss`, the `copyinto` flag is set to true:
+We now have two categories of segments we need to consider. Read-only segments, and writable segments. For read-only segments, it is sufficient to share a reference to the image page. With writable segments, a copy of the data is necessary. Because all programs are loaded from the image. If the image page is written directly, it will impact all subsequently loaded programs. For writable segments, `.data` and `.bss`, the `copyinto` flag is set to true:
 
 ```C
     if(!copyinto) {
@@ -265,7 +265,7 @@ After the user segments have been allocated in `do_exec`:
     }
 ```
 
-The anonymous segments, the dynamic growing ones that are not statically compiled into the kernel image, are initalized with a call to `anoymous_vm_segment`, similar to the user segments, but simpler:
+The anonymous segments, those not statically compiled into the kernel image, are initialized with a call to `anoymous_vm_segment`, similar to the user segments, but simpler:
 
 ```C
 static struct virtualmem *anonymous_vm_segment(unsigned long start_addr,
@@ -332,9 +332,9 @@ static void exec_mmap(struct memmap *mm, struct process *p)
 }
 ```
 
-The current process requests a memory map switch from the old `active_memmap` to the new. The new `struct memmap` is set as the reference to the current process for both the `memmap` and `active_memmap` fields (this is a user space process!). If the current process was already a user space process before entering `do_exec`, the `memmap` field would have had a valid reference, and the user space mappings were is use. For this case, `put_memmap` is called to decrement the `users` count. Otherwise, `do_exec` was called from a cake thread, user space mappings were not in use, and `drop_memmap` is called to decrement the `refcount` count.
+The current process requests a memory map switch from the old `active_memmap` to the new. The new `struct memmap` is set as the reference to the current process for both the `memmap` and `active_memmap` fields (this is a user space process!). If the current process was already a user space process before entering `do_exec`, the `memmap` field will have had a valid reference, and the user space mappings are is use. For this case, `put_memmap` decrements the `users` count. Otherwise, `do_exec` was called from a cake thread, user space mappings are not in use, and `drop_memmap` decrements the `refcount` count.
 
-Now, `do_exec` has loaded a new address map for the process, with sections pointing to user space mappings. The last step is to setup the program counter and user stack, which is accomplished with a call to `start_thread`:
+Now, `do_exec` has created a new address map for the process, with sections pointing to user space mappings. The last step is to set the program counter and user stack, which is accomplished with a call to `start_thread`:
 
 ```C
     start_thread(ssr, program_counter, STACK_TOP - SECTION_SIZE);
@@ -344,7 +344,7 @@ Now, `do_exec` has loaded a new address map for the process, with sections point
 
 #### Bon Voyage Kernel Space and Bonjour User Space
 
-The `start_thread` function is an architecture-specific function responsible for the final setup before entering (or returning to) user space. In CheesecakeOS, it is an inline function defined in [arch/arm64/include/arch/start.h](code3/arch/arm64/include/arch/start.h):
+The architecture-specific `start_thread` function is responsible for the final setup before entering (or returning to) user space. In CheesecakeOS, it is an inline function defined in [arch/arm64/include/arch/start.h](code3/arch/arm64/include/arch/start.h):
 
 ```C
 #define PSR_MODE_EL0t   0b0000
@@ -363,9 +363,9 @@ static inline void start_thread(struct stack_save_registers *ssr, unsigned long 
 
 This small function has big impact. The saved register state in the `struct stack_save_registers` area is blown away. The program counter and stack are set, such that when `__ENTRY_RESTORE` runs, `ELR_EL1` and `SP_EL0` will take on the correct values. The `pstate` field is also updated, with the mode bits cleared (see `pg. C5-381` of ARM ARM). This value is loaded into `SPSR_EL1`. When the `eret` instruction runs, the processor will be restored into the `EL0` exception level. A user space process will be running!
 
-The journey has been arduous. Building and running should demonstrate what we have been working on the entire chapter (notice the workqueue is still running):
+The journey has been arduous. Building and running should at last demonstrate what we have been working on the entire chapter (notice the workqueue is still running):
 
 ![Raspberry Pi Exec Cheesecake](images/0904_rpi4_exec.png)
 
-*Chapter Top* [Chapters[9]: Virtual Memory](chapter9.md) | *Next Chapter* [Chapters[10]: The TTY Driver and File Abstraction](../chapter10/chapter10.md)  
-*Previous Page* [System Calls](syscall.md) | *Next Page* [Chapters[10]: The TTY Driver and File Abstraction](../chapter10/chapter10.md)
+*Previous Page* [System Calls](syscall.md) | *Next Page* [Chapters[10]: The TTY Driver and File Abstraction](../chapter10/chapter10.md)  
+*Chapter Top* [Chapters[9]: Virtual Memory](chapter9.md) | *Next Chapter* [Chapters[10]: The TTY Driver and File Abstraction](../chapter10/chapter10.md)

@@ -33,7 +33,7 @@ Ideally, we would like each user space process to see an address map something l
                     ├─────────────────────────────────────┤
                     │        Private Read-only Data       │ *.rodata
                     ├─────────────────────────────────────┤
-                    │  Private Read Only Executable Code  │ *.text
+                    │  Private Read-only Executable Code  │ *.text
  0x0000000000400000 └─────────────────────────────────────┘
 ```
 
@@ -55,9 +55,9 @@ This is the user process memory map employed by the Linux Kernel, and described 
                     ├───────────────────────────────────────────┤
                     │       Private Copy of Read/Write Data     │ *.data
                     ├───────────────────────────────────────────┤
-                    │       Private Copy of Read-only Data      │ *.rodata
+                    │         Reference of Read-only Data       │ *.rodata
                     ├───────────────────────────────────────────┤
-                    │ Private Copy of Read Only Executable Code │ *.text
+                    │   Reference of Read-only Executable Code  │ *.text
  0x0000000000000000 └───────────────────────────────────────────┘
 ```
 
