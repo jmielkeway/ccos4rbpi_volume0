@@ -32,13 +32,13 @@ struct folder {
 };
 ```
 
-The file structure has two extensions. First, an embedded `struct file_ops` structure containing object specific implementations of generic file operations. The `struct file` is an object in the object-oriented sense. File objects are created with polymorphism in mind. This is what allows the `read`, `write`, and other system calls to be used with multiple types of file descriptors.
+The file structure has two extensions. First, an embedded `struct file_ops` structure containing object-specific implementations of generic file operations. The `struct file` is an object in the object-oriented sense. File objects are created with polymorphism in mind. The `read`, `write`, and other system calls may be used with multiple types of file descriptors.
 
-Second, each file has a generic extension pointer, aptly named `extension` to keep track of any extra information that may be needed to implement the file operations.
+Second, each file has a generic extension pointer, aptly named `extension` to keep track of any extra information required to implement the file operations.
 
-A `struct folder` is simply a table associating a small integer (what a user applications would know as a file descriptor) with a file object. A `next` pointer helpfully keeps track of the next file descriptor to be assigned, while the `openmap` is a small bitmap to track file descriptors that are already open. A process may have no more than sixteen file descriptors open as defined by the `MAX_OPEN_FILES` macro.
+A `struct folder` is simply a table associating a small positive integer - what a user applications would know as a file descriptor - with a file object. A `next` pointer helpfully keeps track of the next file descriptor to be assigned, while the `openmap` is a small bitmap to track file descriptors that are already open. A process is allowed a maximum of sixteen open file descriptors as defined by the `MAX_OPEN_FILES` macro.
 
-Each process now has an embedded `struct folder`, from [include/cake/process.h](code0/include/cake/process.h):
+Each process now has an embedded `struct folder`, shown in [include/cake/process.h](code0/include/cake/process.h):
 
 ```C
 struct process {
@@ -61,7 +61,7 @@ struct process {
 
 #### Pretend File System
 
-Using file objects without a file system seems a little silly. What, then, does each file object represent? In order to give each `struct file` something to represent, we are going to invent a pretend file system. It will be board-specific, and the parameters defined in [arch/arm64/board/raspberry-pi-4/include/board/filesystem.h](code0/arch/arm64/board/raspberry-pi-4/include/board/filesystem.h):
+Using file objects without a file system seems a little silly. What, then, does each file object represent? In order to give each `struct file` a life purpose, we are going to invent a pretend file system. It will be board-specific, and the parameters defined in [arch/arm64/board/raspberry-pi-4/include/board/filesystem.h](code0/arch/arm64/board/raspberry-pi-4/include/board/filesystem.h):
 
 ```C
 #define RPI4_MINIUART_BASEFILE  (0)
@@ -94,7 +94,7 @@ struct file **assign_filesystem()
 }
 ```
 
-Five files are statically initalized in the `filesystem` array. The zeroth entry is a device file (which, you have already cleverly determined is likely for the mini uart device), which the remaining four are general purpose files. The `assign_filesystem` board-specific initalizer is called from `filesystem_init` in the [src/filesystem.c](code0/src/filesystem.c) module:
+Five files are statically initialized in the `filesystem` array. The zeroth entry is a device, while the remaining four are general purpose files. The `assign_filesystem` board-specific initializer is called from `filesystem_init` in the [src/filesystem.c](code0/src/filesystem.c) module:
 
 ```C
 static struct file **filesystem;
@@ -111,9 +111,9 @@ void filesystem_init()
 }
 ```
 
-The `filesystem_file` function can then be used to access a reservation by the integer number. The `filesystem_init` function is called from `init` in `cheesecake_main` in [src/cheesecake.c](code0/src/cheesecake.c). From `filesystem_init`, `drivers_init` also runs to complete driver setup. We will burrow into the drivers in a bit.
+The `filesystem_file` function is used to access a reservation by the integer number. The `filesystem_init` function is called from `init` in `cheesecake_main` in [src/cheesecake.c](code0/src/cheesecake.c). From `filesystem_init`, `drivers_init` also runs to complete driver setup. We will burrow into the drivers in a bit.
 
-Now that some concept of a file system exists, even a pretend concept, it is possible to define an `open` operation so a process can manipulate a file. To wit, the `do_open` function in [src/file.c](code0/src/file.c) associates a file descriptor with a file:
+Now the concept of a file system exists, even a pretend concept, we can define an `open` operation so a process reference a file. To wit, the `do_open` function in [src/file.c](code0/src/file.c) associates a file descriptor with a file:
 
 ```C
 extern struct file *filesystem_file(unsigned int i);
@@ -130,7 +130,7 @@ int do_open(int file_reservation) {
     }
 ```
 
-If all file descriptors are in use, no file can be opened, and `-1` is returned to indicate failure.
+If all file descriptors are in use, no file can be opened, and -1 indicates failure.
 
 ```C
     file = filesystem_file(file_reservation);
@@ -141,7 +141,7 @@ If all file descriptors are in use, no file can be opened, and `-1` is returned 
     }
 ```
 
-A pointer to the `struct file` associated with the funtion's input argument is pulled from the filesystem module. The structure's open method runs. A truthy return value indicates failure, and the pointer is not added to the process's folder.
+A pointer to the `struct file` associated with the function's input argument is pulled from the filesystem module. The structure's open method runs. A truthy return value indicates failure, and the pointer is not added to the process's folder.
 
 ```C
     else {
@@ -160,7 +160,7 @@ A pointer to the `struct file` associated with the funtion's input argument is p
 
 If the `struct file`'s open call was successful, the folder map is updated with the reference. The file descriptor bit in the `openmap` is toggled on, and the value of the `next` file descriptor is setup for the next call to `do_open`.
 
-The `do_open` function can be wrapped in a system call to allow for user space processes to access the general purpose file descriptors we have allocated. In this volume, the `open` system call is left unimplemented. The `do_open` functionality is put to use in the `startup_user` function is [arch/arm64/board/raspberry-pi-4/user.c](code0/arch/arm64/board/raspberry-pi-4/user.c):
+The `do_open` function can be wrapped in a system call to allow for user space processes to access the general purpose file descriptors we have allocated. In this volume, the `open` system call is left unimplemented. The `do_open` functionality is put to use in the `startup_user` function in [arch/arm64/board/raspberry-pi-4/user.c](code0/arch/arm64/board/raspberry-pi-4/user.c):
 
 ```C
 extern long do_exec(int (*user_function)(void), int init);
@@ -175,7 +175,7 @@ int startup_user(void *user_function)
 }
 ```
 
-Now, in addition to the `do_exec` call to setup the user space process memory map, `do_open` is called twice with the `RPI4_MINIUART_BASEFILE` reservation. This will associate the mini uart device file with file descriptors `0` and `1`, or `STDIN` and `STDOUT`. If and when the user space process is forked, the child processes will get a copy of the process's `folder` field. The children will also have access to `STDIN` and `STDOUT`.
+Now, in addition to the `do_exec` call to setup the user address space, `do_open` is called twice with the `RPI4_MINIUART_BASEFILE` reservation. This will associate the mini UART device file with file descriptors zero and one, or `STDIN` and `STDOUT`. If and when the user space process is forked, the child processes will get a copy of the process's `folder` field. The children will also have access to `STDIN` and `STDOUT`.
 
 Also living in the [src/file.c](code0/src/file.c) module are the `sys_read` and `sys_write` functions, used within the kernel to service the `read` and `write` system calls. They are presented here with no further comment:
 
@@ -207,15 +207,14 @@ long sys_write(unsigned int fd, char *user, unsigned long count)
 }
 ```
 
-
 #### TTY Structures
 
-The file abstraction allows for clients to view blocks or streams of bytes generically. But all those file operations need concrete implementations. These implentations generally come from device drviers. Linux defines three types of hardware device:
-1. Devices read and written with out buffering, called charcter devices
-2. Devices read and written to in multiples of some block size and that implement buffering, called block devices
-3. Newtork devices, which are special
+The file abstraction allows for clients to view blocks or streams of bytes generically. But all those file operations need concrete implementations. These implementations typically come from device drivers. Linux defines three types of hardware device:
+1. Devices read and written without buffering, called character devices
+2. Devices read and written in multiples of some block size and that implement buffering, called block devices
+3. Network devices, which are special
 
-So far, we have been interacting with the mini uart as if it is a character device. We will continue to do so, but we will insert a TTY abstraction layer between the user and the device. The TTY driver is this abstraction layer. The TTY driver is actually a collection of modules that attempt to properly partition software and hardware responsibility. The structures representing a TTY device are defined in [include/cake/tty.c](code0/include/cake/tty.c):
+So far, we have been interacting with the mini UART as if it is a character device. We will continue to do so, but we will insert a TTY abstraction layer between the user and the device. The TTY driver is this abstraction layer. The TTY driver is really a collection of modules that attempt to properly partition software and hardware responsibilities. The structures representing a TTY device are defined in [include/cake/tty.c](code0/include/cake/tty.c):
 
 ```C
 struct tty {
@@ -242,11 +241,11 @@ The `struct tty` structure fields are:
 - A generic pointer to `driver_data`
 - A generic pointer to data for the line discipline, `disc_data`
 - A map of special characters, in a `termios` array, terminal i/o settings
-- The `index` of the tty in the device file block
+- The `index` of the TTY in the device file block
 - The number of open references to the TTY in `open_count`
 - A `waitqueue` where processes can wait for the TTY to signal delivery of requests
 
-A line discipline is used to handle higher level formatting for low level drivers. Notice the `tty_ops` operations include a `write` method, but not a `read` method. The idea is the lowest level of the driver knows how to take formatted characters and write them into a device. The line discipline is then capable of processing the raw characters from the device and formatting them for application use.
+A line discipline is used to handle higher level formatting for low level drivers. The `tty_ops` operations include a `write` method, but not a `read` method. The idea is the lowest level of the driver knows how to take formatted characters and write them into a device. The line discipline is then capable of processing the raw characters from the device and formatting them for application use.
 
 The line discipline is represented by a `struct tty_ldisc`:
 
@@ -276,11 +275,11 @@ struct tty_driver {
 };
 ```
 
-When a TTY device is initalized it registers its `struct tty_driver` with the tty module, passing along the `tty_ops` to a `struct tty`.
+When a TTY device is initialized, it registers its `struct tty_driver` with the TTY module, passing along the `tty_ops` to a `struct tty`.
 
 #### The Lowest Level TTY Driver
 
-The bottom layer of the TTY Driver is implemented in the mini uart source file, [arch/arm64/board/raspberry-pi-4/mini-uart.c](code0/arch/arm64/board/raspberry-pi-4/mini-uart.c). The mini uart hardware device will be responsible for reading and writing. The focus on this chapter is writing. Writing is a simpler operation. As we have seen throughout this volume, no user interaction is needed. Concern in this section will therefore be focused on the `struct tty_ops` operations:
+The bottom layer of the TTY Driver is implemented in the mini UART source file, [arch/arm64/board/raspberry-pi-4/mini-uart.c](code0/arch/arm64/board/raspberry-pi-4/mini-uart.c). The mini UART hardware device will be responsible for reading and writing. The focus in this slice is on writing. Writing is a simpler operation. As we have seen throughout this volume, no user interaction is needed. Let us jump in with the `struct tty_ops` operations:
 
 ```C
 #include "cake/tty.h"
@@ -304,7 +303,7 @@ static struct tty_driver rpi4_miniuart_tty_driver = {
 };
 ```
 
-When a device file backed by the mini uart driver runs the open operation, `rpi4_miniuart_open` will execute:
+When a device file backed by the mini UART driver runs the open operation, `rpi4_miniuart_open` will execute:
 
 ```C
 static int rpi4_miniuart_open(struct tty *tty, struct file *file)
@@ -315,7 +314,7 @@ static int rpi4_miniuart_open(struct tty *tty, struct file *file)
 }
 ```
 
-A back-pointer to the calling `struct tty` object is saved in `rpi4_miniuart.tty`, and a pointer to that object is offered as the driver data in response. The close operation nullifies the refernces:
+A back-pointer to the calling `struct tty` object is saved in `rpi4_miniuart.tty`, and a pointer to the `rpi4_miniuart` object is offered as the driver data in response. The close operation nullifies the references:
 
 ```C
 static int rpi4_miniuart_close(struct tty *tty, struct file *file)
@@ -349,9 +348,9 @@ static int rpi4_miniuart_write(struct tty *tty, unsigned char *buffer, unsigned 
 }
 ```
 
-This `rpi4_miniuart_write` function seems to break the rule about formatting, by knowing too much about formatting. In the case of a newline character from an application, the driver inserts an extra carraige return. I'm unconvinced. Without the carraige return, the mini uart will not direct the terminal to advance to the next line. Seems a reasonable thing for the hardware to be defined at that hardware level.
+This `rpi4_miniuart_write` function seems to break the rule about formatting, by knowing too much. In the case of a newline character from an application, the driver inserts an extra carriage return. It is not so clear. Without the carriage return, the mini UART will not direct the terminal to advance to the next line. Is this not hardware-specific behavior?
 
-In mini uart must be properly initalized into the kernel at boot time. Earlier, we saw that `drivers_init` was called from `filesystem_init`. The `drivers_init` function is board-specific, and lives in [arch/arm64/board/raspberry-pi-4/filesystem.c](code0/arch/arm64/board/raspberry-pi-4/filesystem.c):
+The mini UART must be properly initialized into the kernel at boot time. Earlier, we saw that `drivers_init` was called from `filesystem_init`. The `drivers_init` function is board-specific, and lives in [arch/arm64/board/raspberry-pi-4/filesystem.c](code0/arch/arm64/board/raspberry-pi-4/filesystem.c):
 
 ```C
 void drivers_init()
@@ -360,7 +359,7 @@ void drivers_init()
 }
 ```
 
-Here, `drivers_init` calls the mini uart init function, passing in the `RPI4_MINIUART_BASEFILE` reservation.
+Here, `drivers_init` calls the `rpi4_minuart_init` function, passing in the `RPI4_MINIUART_BASEFILE` reservation.
 
 ```C
 int rpi4_miniuart_init(int reserved_file)
@@ -371,7 +370,7 @@ int rpi4_miniuart_init(int reserved_file)
 }
 ```
 
-The `rpi4_miniuart_tty_driver` object stores `RPI4_MINIUART_BASEFILE` as the basefile, and is passed along to the `register_tty_driver` function, defined in [src/tty.c](code0/src/tty.c):
+The `rpi4_miniuart_tty_driver` object stores `RPI4_MINIUART_BASEFILE` as the `basefile`, and is passed along to the `register_tty_driver` function, defined in [src/tty.c](code0/src/tty.c):
 
 ```C
 void register_tty_driver(struct tty_driver *driver)
@@ -396,7 +395,7 @@ For each device covered by the driver, the function:
 2. Borrows the registered driver's `tty_ops` to use as its own
 3. Initializes the `index` and `waitqueue` of the `struct tty`
 4. Grabs the file reference and sets the operations equal to the module's `tty_file_ops` (covered lower)
-5. Sets the file's extension reference to point to the newly allocated tty object
+5. Sets the file's extension reference to point to the newly allocated TTY object
 
 In this way, the lowest level functionality of the TTY driver is glued into the generic TTY module.
 
@@ -416,7 +415,7 @@ Picking up where we left off in the `register_device_driver` function:
         file->ops = &tty_file_ops;
 ```
 
-The relevent device files have generic operations concretely implemented by the `tty_file_ops`. This structure, along with the rest of the kernel' generic TTY code is defined in [src/tty.c](code0/src/tty.c):
+The relevant device files have generic operations concretely implemented by the `tty_file_ops`. This structure, along with the rest of the kernel' generic TTY code is defined in [src/tty.c](code0/src/tty.c):
 
 ```C
 static struct file_ops tty_file_ops = {
@@ -426,7 +425,7 @@ static struct file_ops tty_file_ops = {
 };
 ```
 
-Begining again, with the open functionality, `tty_open`:
+Beginning again, with the open functionality, `tty_open`:
 
 ```C
 static struct tty_ldisc_ops n_tty_ldisc_ops = {
@@ -452,7 +451,7 @@ static int tty_open(struct file *file)
 }
 ```
 
-When `do_open` runs with a file reservation corresponding to a TTY device file, `tty_open` is called. From registering the device drivers at startup, the file should have a `struct tty` saved in its extension pointer. If no line discipline has yet been allocated to the `struct tty`, a new one is created dynamically, and initalized with the `n_tty_ldisc_ops` from this TTY module. A call to `n_tty_open` is a no-op for now, this function is expanded in the next section.
+When `do_open` runs with a file reservation corresponding to a TTY device file, `tty_open` runs. From registering the device drivers at startup, the file should have a `struct tty` saved in its extension pointer. If no line discipline has yet been allocated to the `struct tty`, a new one is created dynamically, and initialized with the `n_tty_ldisc_ops` from this TTY module. A call to `n_tty_open` is a no-op for now, this function is expanded in the next slice.
 
 ```C
 static int tty_close(struct file *file)
@@ -505,18 +504,18 @@ static long tty_write(struct file *file, char *user, unsigned long n)
 }
 ```
 
-The `tty_write` and `n_tty_write` functions are part of a chain that best illustrates the layering from system call to device driver described earlier. The `write` system call will access the `write` file operation from the mini uart device file, implemented by `tty_write`. 
+The `tty_write` and `n_tty_write` functions are part of a chain that best illustrates the layering from system call to device driver described earlier. The `write` system call will access the `write` file operation from the mini UART device file, implemented by `tty_write`. 
 
 The TTY module `tty_write` function:
 - Accepts a user space character buffer as input
-- Establishes a references to a `struct tty` from the `struct file`
+- Establishes a reference to a `struct tty` from the `struct file`
 - Establishes a reference to the line discipline object, `struct tty_ldisc` from the `struct tty`
 - Allocates a buffer of size `N_TTY_BUF_SIZE`
-- Iterates in chuncks of `N_TTY_BUF_SIZE` to
-  - Copy the user space buffer into the kernel space buffer (see more below)
+- Iterates in chunks of `N_TTY_BUF_SIZE` to
+  - Copy the user space buffer into a kernel space buffer (see more below)
   - Pass the kernel buffer along to the line discipline in `n_tty_write` (see more below)
 
-As part of the `tty_write` operation, the user space buffer is copied into a dynamically allocated kernel buffer, rather than passing the user buffer directly to the line discpline write function. It is standard practice to copy buffers from user space to kernel space in a controlled way. Blindly chasing unchecked userspace pointers is profane. The function to copy to and from user space are included from [include/cake/user.h](code0/include/cake/user/h):
+As part of the `tty_write` operation, the user space buffer is copied into a dynamically allocated kernel buffer. It is standard practice to copy buffers from user space to kernel space in a controlled way. Blindly chasing unchecked user space pointers is profane. The functions to copy to and from user space are included from [include/cake/user.h](code0/include/cake/user/h):
 
 ```C
 static inline int outside_bounds(unsigned long cake, unsigned long user, unsigned long count)
@@ -539,7 +538,7 @@ static inline unsigned long copy_to_user(void *user, void *cake, unsigned long c
 }
 ```
 
-Both `copy_to_user` and `copy_from_user` do simple bounds checking of the pointer addresses, and return non-zero on failure. In the `arm64` implementation, both `COPY_FROM_USER` and `COPY_TO_USER` are macros resolving to `memcpy` ([arch/arm64/include/arch/user.h](code0/arch/arm64/include/arch/user.h)).
+Both `copy_to_user` and `copy_from_user` do simple bounds checking of the pointer addresses, and return non-zero on failure. In the `arm64` implementation, both `COPY_FROM_USER` and `COPY_TO_USER` are macros resolving to `memcpy` in ([arch/arm64/include/arch/user.h](code0/arch/arm64/include/arch/user.h)).
 
 Back in the TTY module, in the `n_tty_write` function, the kernel buffer is simply passed along to the low level driver for writing:
 
@@ -557,7 +556,7 @@ static long n_tty_write(struct tty *tty, char *buffer, unsigned long count)
 }
 ```
 
-Before wrapping up in user space, one consequence of our additional features. Since now a user space buffer is accepted into, and referenced from kernel space, the `TTBR0_EL1` PGD will be used for lookups. The user space buffer may not be totally mapped in the PGD. Just as in user space, the translation tables for this buffer need to be allocated on demand. We need to update our exception handling from `__sync_el1h` in [arch/arm64/entry.S](code0/arch/arm64/entry.S) to handle page faults from `EL1`:
+Before wrapping up in user space, one consequence of our additional features. Since now a user space buffer is accepted into, and referenced from kernel space, the `TTBR0_EL1` _PGD_ will be used for lookups from within kernel code. The user space buffer may not be totally mapped in the _PGD_. Just as in user space, the translation tables for this buffer need to be allocated on demand. We need to update our exception handling from `__sync_el1h` in [arch/arm64/entry.S](code0/arch/arm64/entry.S) to handle page faults from `EL1`:
 
 ```C
 __sync_el1h:
@@ -587,7 +586,7 @@ The handler scheme is the same as for exceptions from `EL0`.
 
 #### Write System Call
 
-The `sayhello` program in [arch/arm64/user/sayhello.c](code0/arch/arm64/user/sayhello.c) has been updated to use a new system call, `write`:
+The `sayhello` program in [arch/arm64/user/sayhello.c](code0/arch/arm64/user/sayhello.c) uses a new system call, `write`:
 
 ```C
 #define STDIN   (0)
@@ -606,7 +605,7 @@ int say_hello()
 }
 ```
 
-Following the step outline in [Chapter Nine](../chapter09/syscall.h) about adding new system calls, `read` and `write` calls have been added to [arch/arm64/user/libc.c](code0/arch/arm64/user/libc.c) (TTY-side read to be implemented in the next section):
+Following the steps outline in [Chapter Nine](../chapter09/syscall.h) with respect to adding new system calls, `read` and `write` calls have been added to [arch/arm64/user/libc.c](code0/arch/arm64/user/libc.c) (TTY-side read to be implemented in the next slice):
 
 ```C
 extern long __read(int fd, char *buffer, unsigned long count);
@@ -651,7 +650,7 @@ The system call numbers added in [arch/arm64/user/include/user/syscall.h](code0/
 #define NUM_SYSCALLS            (4)
 ```
 
-And finally, the the system call indexes add to the `sys_call_table` in [arch/arm64/syscall.c](code0/arch/arm64/syscall.c):
+And finally, the the system call indexes added to the `sys_call_table` in [arch/arm64/syscall.c](code0/arch/arm64/syscall.c):
 
 ```C
 extern long sys_read(int fd, char *buffer, unsigned long count);
@@ -678,11 +677,11 @@ You know that `STDOUT` represents a pointer to a `struct file` in the `CURRENT` 
     file->ops->write(file, "I <3 Old York Cheesecake\n", 27);
 ```
 
-Which will, in reality, be a call to `tty_write`. From there `tty_write` will invoke `n_tty_write` from its line discipline operations, and `n_tty_write` will call `rpi4_miniuart_write` from the `struct tty`'s `struct tty_ops`. Finally, `rpir_miniuart_write` will call the `uart_puts` function to write each character to the peripheral.
+Which will, in reality, be a call to `tty_write`. From there `tty_write` will invoke `n_tty_write` from its line discipline operations, and `n_tty_write` will call `rpi4_miniuart_write` from the `struct tty`'s `struct tty_ops`. Finally, `rpi4_miniuart_write` will call the `uart_puts` function to write each character to the peripheral.
 
 You will then be none surprised when you build the CheesecakeOS image, load it onto the Raspberry Pi 4, boot the computer, and see this in your terminal:
 
 ![Raspberry Pi Write Cheesecake](images/1001_rpi4_write.png)
 
-*Chapter Top* [Chapters[10]: The TTY Driver with File Abstraction](chapter10.md) | *Next Chapter* [Chapters[11]: Signals](../chapter11/chapter11.md)  
-*Previous Page* [Chapters[10]: The TTY Driver with File Abstraction](chapter10.md) | *Next Page* [Reading](read.md)
+*Previous Page* [Chapters[10]: The TTY Driver with File Abstraction](chapter10.md) | *Next Page* [Reading](read.md)  
+*Chapter Top* [Chapters[10]: The TTY Driver with File Abstraction](chapter10.md) | *Next Chapter* [Chapters[11]: Signals](../chapter11/chapter11.md)
