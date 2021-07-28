@@ -95,7 +95,7 @@ static void signal_clear(struct signal *signal, unsigned long signal_mask)
     struct sigqueue *q, *r;
     *(signal->pending) &= ~(signal_mask);
     LIST_FOR_EACH_ENTRY_SAFE(q, r, &(signal->signallist), list) {
-        if(q->info.signo & signal_mask) {
+        if(SIGMASK(q->info.signo) & signal_mask) {
             list_delete(&(q->list));
             cake_free(q);
         }
