@@ -4,8 +4,10 @@
 ## Chapters[13]: Bonus
 
 #### What We're Baking With
-```
-.
+
+```bash
+ccos4rbpi:~$ tree arch/arm64/board/raspberry-pi-3/
+arch/arm64/board/raspberry-pi-3/
 ├── config.txt
 ├── filesystem.c
 ├── include

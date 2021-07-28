@@ -4,7 +4,8 @@
 ## Chapters[12]: The Shell
 
 #### What We're Baking With
-```
+
+```bash
 ccos4rbpi:~$ tree
 .
 ├── Makefile

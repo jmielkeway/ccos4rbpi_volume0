@@ -6,6 +6,7 @@
 #### What We're Baking With
 
 ```bash
+ccos4rbpi:~$ tree
 .
 ├── Makefile
 ├── arch
