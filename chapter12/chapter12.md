@@ -5,6 +5,7 @@
 
 #### What We're Baking With
 ```
+ccos4rbpi:~$ tree
 .
 ├── Makefile
 ├── arch
@@ -133,9 +134,9 @@
     └── work.c
 ```
 
-Just take a look at all those ingredients! I hope you have your chilled forks ready, because this chapter is our victory lap. We will focus on wrapping up the CheescakeOS Shell application, adding or refining the few kernel services necessary to achieve the cool smoothness otherwise provided by your favorite delicattesen.
+Just take a look at all those ingredients! I hope you have your dessert fork ready, because this chapter is our victory lap. We will focus on wrapping up the CheesecakeOS Shell application, adding or refining the few kernel services necessary to achieve the cool smoothness otherwise found at your favorite delicatessen.
 
 - [The Shell](shell.md) is our last hurrah, the finale in this installment of CheesecakeOS for Raspberry Pi 4.
 
-*Previous Chapter* [Chapters[11]: Signals](../chapter11/chapter11.md) | *Next Chapter* [Chapters[13]: Bonus](../chapter13/chapter13.md)  
 *Previous Page* [Receiving](../chapter11/receiving.md)  |  *Next Page* [The Shell](shell.md)
+*Previous Chapter* [Chapters[11]: Signals](../chapter11/chapter11.md) | *Next Chapter* [Chapters[13]: Bonus](../chapter13/chapter13.md)  
