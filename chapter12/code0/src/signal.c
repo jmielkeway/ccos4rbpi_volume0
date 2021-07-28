@@ -40,7 +40,7 @@ static void signal_parent_stop(struct process *p, unsigned long flags);
 
 static struct cache *sigqueue_cache;
 
-int dequeue_signal(struct process *p, unsigned long *blocked, struct siginfo *info)
+static int dequeue_signal(struct process *p, unsigned long *blocked, struct siginfo *info)
 {
     int signo;
     unsigned long x;
@@ -93,6 +93,7 @@ int get_signal(struct cakesignal *csig)
 start:
     SPIN_LOCK(&(signal->lock));
     if(signal->flags & SIGNAL_FLAGS_CONTINUED) {
+        signal->flags &= ~SIGNAL_FLAGS_CONTINUED;
         SPIN_UNLOCK(&(signal->lock));
         signal_parent_stop(current, SIGNAL_FLAGS_CONTINUED);
         goto start;
@@ -112,7 +113,7 @@ start:
             break;
         }
         if(SIGMASK(signo) & (STOP_SIGNALS_MASK)) {
-            signal->flags = SIGNAL_FLAGS_STOPPED;
+            signal->flags = SIGNAL_FLAGS_STOPPED | CHILD_STOPPED;
             current->state = PROCESS_STATE_STOPPED;
             SPIN_UNLOCK(&(signal->lock));
             signal_parent_stop(current, SIGNAL_FLAGS_STOPPED);
@@ -131,13 +132,16 @@ static int send_signal(int signo, struct siginfo *info, struct process *p)
 {
     struct signal *signal = p->signal;
     struct sigqueue *q;
+    if(signal->flags & SIGNAL_FLAGS_EXITED) {
+        return 0;
+    }
     if(SIGMASK(signo) & (STOP_SIGNALS_MASK)) {
         signal_clear(signal, SIGMASK(SIGCONT));
     }
     else if(SIGMASK(signo) & SIGMASK(SIGCONT)) {
         signal_clear(signal, (STOP_SIGNALS_MASK));
         if(signal->flags & SIGNAL_FLAGS_STOPPED) {
-            signal->flags = SIGNAL_FLAGS_CONTINUED;
+            signal->flags = SIGNAL_FLAGS_CONTINUED | CHILD_CONTINUED;
         }
         WRITE_ONCE(p->state, PROCESS_STATE_RUNNING);
         return 0;
@@ -252,7 +256,7 @@ void signal_init()
 
 int sys_sigaction(int signo, struct sigaction *sigaction, struct sigaction *unused)
 {
-    struct sigaction *target; 
+    struct sigaction *target;
     struct process *current = CURRENT;
     struct signal *signal = current->signal;
     SPIN_LOCK(&(current->signal->lock));

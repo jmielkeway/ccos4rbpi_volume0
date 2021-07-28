@@ -32,6 +32,7 @@ void do_exit(int code)
     current->memmap = 0;
     current->exitcode = code;
     current->state = PROCESS_STATE_EXIT;
+    current->signal->flags = SIGNAL_FLAGS_EXITED;
     SPIN_UNLOCK(&(current->signal->lock));
     put_memmap(mm);
     signal_parent_exit(current);

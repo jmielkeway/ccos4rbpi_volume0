@@ -78,26 +78,19 @@ struct user_layout {
 
 void check_and_process_signals(struct stack_save_registers *ssr)
 {
-    unsigned long continue_addr, restart_addr, x0;
+    unsigned long x0;
     struct cakesignal csig;
-    struct process *current = CURRENT;
-    struct signal *signal = (current->signal);
-    unsigned long *pending = signal->pending;
-    while(READ_ONCE(*pending) &~ READ_ONCE(*(signal->blocked))) {
-        if(ssr->syscalln) {
-            continue_addr = ssr->pc;
-            restart_addr = continue_addr - INSTRUCTION_SIZE;
-            x0 = ssr->regs[0];
-            ssr->syscalln = 0;
-            if(x0 == -ERESTARTSYS) {
-                ssr->regs[0] = ssr->orig_x0;
-                ssr->pc = restart_addr;
-            }
+    if(ssr->syscalln) {
+        ssr->syscalln = 0;
+        x0 = ssr->regs[0];
+        if(x0 == -ERESTARTSYS) {
+            ssr->regs[0] = ssr->orig_x0;
+            ssr->pc -= INSTRUCTION_SIZE;
         }
-        if(get_signal(&csig)) {
-            run_user_sighandler(ssr, &csig);
-        }
-    };
+    }
+    while(get_signal(&csig)) {
+        run_user_sighandler(ssr, &csig);
+    }
 }
 
 static void run_user_sighandler(struct stack_save_registers *ssr, struct cakesignal *csig)

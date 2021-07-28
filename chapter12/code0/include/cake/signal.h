@@ -20,9 +20,11 @@
 #include "cake/wait.h"
 #include "user/signal.h"
 
-#define SIGNAL_FLAGS_STOPPED    (0b0001)
-#define SIGNAL_FLAGS_CONTINUED  (0b0010)
-#define SIGNAL_FLAGS_EXITED     (0b0100)
+#define SIGNAL_FLAGS_EXITED     (0b000001)
+#define SIGNAL_FLAGS_STOPPED    (0b000010)
+#define SIGNAL_FLAGS_CONTINUED  (0b000100)
+#define CHILD_STOPPED           (0b001000)
+#define CHILD_CONTINUED         (0b010000)
 
 #define SIGNAL_SEND_PRIVATE     (1UL)
 
