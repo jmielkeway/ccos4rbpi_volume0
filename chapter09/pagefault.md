@@ -216,7 +216,7 @@ static int grow_stack(unsigned long addr, struct virtualmem **vm)
         if(!page) {
             goto freevirtualmem;
         }
-        memset(page, 0, STACK_SIZE);
+        memset(PAGE_TO_PTR(page), 0, STACK_SIZE);
         new->vm_end = check->vm_end - STACK_SIZE;
         new->vm_start = new->vm_end - STACK_SIZE;
         new->mm = check->mm;
