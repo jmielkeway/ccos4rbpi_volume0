@@ -74,6 +74,7 @@ void register_tty_driver(struct tty_driver *driver)
     struct file *file;
     for(unsigned int i = driver->basefile; i < driver->num_devices; i++) {
         tty = cake_alloc(sizeof(*tty));
+        memset(tty, 0, sizeof(*tty));
         tty->ops = driver->ops;
         tty->index = i - driver->basefile;
         tty->waitqueue.waitlist.prev = &(tty->waitqueue.waitlist);
@@ -119,7 +120,7 @@ static long tty_write(struct file *file, char *user, unsigned long n)
     struct tty_ldisc *ld = tty->ldisc;
     char *cake_buffer = cake_alloc(N_TTY_BUF_SIZE);
     if(!cake_buffer) {
-        return - 1;
+        return -1;
     }
     while(written < n) {
         count = n - written;
