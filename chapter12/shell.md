@@ -1,17 +1,17 @@
 *Chapter Top* [Chapters[12]: Signals](chapter11.md) | *Next Chapter* [Chapters[13]: Bonus](../chapter13/chapter13.md)  
-*Previous Page* [Receiving](receiving.md) | *Next Page* [Chapters[13]: Bonus](../chapter13/chapter13.md)
+*Previous Page* [Chapters[12]: Signals](chapter11.md) | *Next Page* [Chapters[13]: Bonus](../chapter13/chapter13.md)
 
 ## The Shell ([chapter12/code0](code0))
 
 #### Waitpid System Call
 
-Until now we have had a lot of fun baking our CheesecakeOS. We haven't yet been able to properly run applications from our shell program. Now we are going to have even more fun tying up the loose ends. By the end of the chapter we will have a working shell application that can accept user commands and run other compiled programs - well, compiled functions, but it will still look and feel great!
+Through now we have had a lot of fun baking our CheesecakeOS. We haven't yet been able to properly run applications from our shell program. Now we are going to have even more fun tying up the loose ends. By the end of the chapter we will have a working shell application accepting user commands and running other compiled programs - well, compiled functions, but it will still feel great!
 
 Currently, when we run the `cat` program, the TTY module sends a stop signal to the process, and `cat` ceases to run. What we would like, instead, is for the shell to yield the TTY resource, and sleep, as if in the background, waiting on the `cat` program to execute in the foreground. In order to achieve this effect, we are going to implement the `waitpid` system call.
 
-The `waitpid` system call allows a parent to wait for state changes in child processes. When a child terminates, stops, or resumes, the parent is awakened, and returns with some information about the child. The call also allows for the parent to select whether it is interested in waiting on all children or a specific child. In CheesecakeOS, we will only support waiting on all children.
+The `waitpid` system call allows a parent to wait for state changes in child processes. When a child terminates, stops, or resumes, the parent is awakened, and `waitpid` returns with some information about the child. The interface allows for the parent to select whether it is interested in waiting on all children or a specific child. In CheesecakeOS, we will only support waiting on all children.
 
-Let us take a look at the implementation of `sys_waitpid` in [src/wait.c](src/wait.c):
+The implementation of `sys_waitpid` lives in [src/wait.c](src/wait.c):
 
 ```C
 int sys_waitpid(int pid, int *status, int options)
@@ -24,7 +24,7 @@ int sys_waitpid(int pid, int *status, int options)
     }
 ```
 
-The function takes three arguments. The `pid` argument is used to determine which child to wait on. By convention, a pid of -1 indicates that the calling parent will wait on any child. As mentioned, this is the only value supported in CheesecakeOS.
+The function takes three arguments. The `pid` argument is used to determine which child to wait on. By convention, a PID of -1 is used when the calling parent will wait on any child. This again is the only value supported in CheesecakeOS.
 
 ```C
     current = CURRENT;
@@ -36,7 +36,7 @@ The function takes three arguments. The `pid` argument is used to determine whic
     s = 0;
 ```
 
-The stack variables are initalized, and the current (parent) process is added to the process's `struct signal`s waitqueue. The stack variable `s` is initalized to zero. The status of the child will be indictated in `s`, which will be copied into the `status` pointer.
+The stack variables are initialized, and the current (parent) process is added to the `struct signal`s waitqueue. The status of the child is stored in `s`, to be copied into the `status` pointer.
 
 ```C
     while(1) {
@@ -50,7 +50,7 @@ We iterate through each child in the current process's `childlist`. What is the 
     struct list siblinglist;
 ```
 
-In the `struct process`, the `childlist` acts as the head of a list of children of that process. The children are linked with each other through the `siblinglist` field. Like most other process fields, these are initalized at fork-time in `duplicate_current` from [src/fork.c](code0/src/fork.c):
+In the `struct process`, the `childlist` acts as the canonical head of a list of children of the process. The children are linked with each other through the `siblinglist` field. Like most other process fields, these are initialized at fork-time in `duplicate_current` from [src/fork.c](code0/src/fork.c):
 
 ```C
     *p = *current;
@@ -81,7 +81,7 @@ For each process in the `childlist`, we acquire the signal lock to protect again
             }
 ```
 
-If the signal flags indicate this child is stopped, the return value is set to the pid of the child, the status is updated to indicate a child was stopped, the indicator flag is cleared, and the loop terminates.
+If the signal flags indicate this child is stopped, the return value is set to the `pid` of the child, the status is updated to indicate a child was stopped, the indicator flag is cleared, and the loop terminates.
 
 ```C
             if(p->signal->flags & SIGNAL_FLAGS_CONTINUED) {
@@ -108,7 +108,7 @@ Similarly, if there is a child that continued, that child and status is returned
             SPIN_UNLOCK(&(p->signal->lock));
 ```
 
-The last check is to determine if the child has exited. If so, not only does the status contain this information, but is also encoded with the process exitcode for error checking. The process removes its link from the sibling list. Finally, there is this call to `pid_put`, a function we have not seen before. Now that the process status has been saved into the parent context, the process can be cleaned up, its memory returned to the allocator. The `pid_put` function, as we will examine later in this chapter, does some reference accounting for us.
+The last check is to determine if the child has exited. If so, not only does the status contain this information, but is also encoded with the process `exitcode` for error checking. The process removes its link from the sibling list. Finally, there is this call to `pid_put`, a function we have not seen before. Now the process status has been saved into the parent context, the process can be cleaned up, its memory returned to the allocator. The `pid_put` function, as we will examine later in this chapter, does some reference accounting for us.
 
 ```C
         if(!retval && !(options & WNOHANG)) {
@@ -130,9 +130,9 @@ out:
     return retval;
 ```
 
-If a process was selected for status update, the signal lock is released. The status `s` is copied into the user `status` pointer. The pid is returned.
+If a process was selected for status update, the signal lock is released. The status `s` is copied into the user `status` pointer. The `pid` is returned.
 
-The `waitpid` call can now be used as part of the shell algorithm to exeucte a program and give that program access to the TTY resource. When running a valid program, the fork will look something like:
+The `waitpid` call can now be used as part of the shell algorithm to execute a program and give that program access to the TTY resource. When running a valid program, the fork will look something like:
 
 ```C
 static int shell_clone_exec(char *buffer)
@@ -144,13 +144,13 @@ static int shell_clone_exec(char *buffer)
             int pid = getpid();
             ioctl(STDIN, 0, pid);
             ioctl(STDOUT, 0, pid);
-            exec(fn);
+            exec(cat);
         }
     }
 }
 ```
 
-The forked process within the shell assigns its own pid as the TTY `pid_leader` before executing an exec. Back in the shell processing loop, the pid of the child will have been returned as the foreground process, which can be used in the `waitpid` logic:
+The forked process within the shell assigns its own `pid` as the TTY `pid_leader` before executing an exec. Back in the shell processing loop, the `pid` of the child will have been returned as the foreground process, which can be used in the `waitpid` logic:
 
 ```C
             while((pid = waitpid(-1, &status, flags)) != 0) {
@@ -175,7 +175,7 @@ After the foreground process exits, the shell reasserts itself as the `pid_leade
 
 #### Exiting Cleanly (More Reference Counters)
 
-If we had a `C`-compiler for our CheesecakeOS, and a file system, we could write programs that begin with a main function and automatically run the `exit` system call when finished. We have neither of those things. For proper functioning, our programs should call exit themselves. Take, for example, the final `cat` program, from [arch/arm64/user/cat.c](code0/arch/arm64/user.cat.c):
+If we had a _C_-compiler for our CheesecakeOS, and a file system, we could write programs that begin with a main function and automatically run the `exit` system call when finished. We have neither of those things. For proper functioning, our programs must call exit themselves. Take, for example, the final `cat` program, from [arch/arm64/user/cat.c](code0/arch/arm64/user.cat.c):
 
 ```C
 #define STDIN       (0)
@@ -199,7 +199,7 @@ int cat()
 }
 ```
 
-Now, when a user gives an `EOF` with `C-d` on an empty line, the loop will terminate, and `exit` will run. This should be the start of a chain of execution that will result in the shell being notified of the child exit. The `sys_exit` implementation in [src/exit.c](code0/src/exit.c) is a pass through to `do_exit` from the same source:
+Now, when a user gives an `EOF` with `C-d` on an empty line, the loop will terminate, and `exit` will run. This is the start of a chain of events resulting in the shell being notified of the child exit. The `sys_exit` implementation in [src/exit.c](code0/src/exit.c) is a pass through to `do_exit` from the same source:
 
 ```C
 void sys_exit(int code)
@@ -227,7 +227,7 @@ void do_exit(int code)
 }
 ```
 
-Let's break it down. First the current process's `memmap`s `refcount` is _increased_. An odd thing, to increase a reference counter when exiting a process, but necessary in this case. The later call to `put_memmap` could end up calling `drop_memmap` if there are no other users of the user space mapping. This would otherwise free the `memmap`, while it is still needed in the schedule module. The increment of the reference counter is then offset in the schedule module, after the final call to schedule. Here, the current process's `memmap` is nullified, and in schedule module:
+Let's break it down. First the current process's `memmap`s `refcount` is _increased_. An odd thing, to increase a reference counter when exiting a process, but necessary in this case. The later call to `put_memmap` could end up calling `drop_memmap` if there are no other users of the user space mapping. This would otherwise free the `memmap`, while it is still needed in the schedule module. The increment of the reference counter is then offset in the schedule module, after the final call to schedule. The current process's `memmap` is nullified, and thus set to be dropped in the schedule module:
 
 ```C
     if(!(prev->memmap)) {
@@ -236,7 +236,7 @@ Let's break it down. First the current process's `memmap`s `refcount` is _increa
     }
 ```
 
-This leads to `drop_memmap` being called from `finish_switch`, so the math works out. The `do_exit` function also updates the state of the current process to `PROCESS_STATE_EXIT`, and calls `signal_parent_exit` before the final call to `schedule_self`. The `signal_parent_exit` function is defined in [src/signal.c](code0/src/signal.c):
+Saving a map on the `rq` is followed by a call to `drop_memmap` from `finish_switch`, so the math works out. The `do_exit` function sets the state of the terminating process to `PROCESS_STATE_EXIT`, and calls `signal_parent_exit` before the final call to `schedule_self`. The `signal_parent_exit` function is defined in [src/signal.c](code0/src/signal.c):
 
 ```C
 void signal_parent_exit(struct process *p)
@@ -261,7 +261,7 @@ void signal_parent_exit(struct process *p)
 }
 ```
 
-The functon is similar to `signal_parent_stop`, reviewed in the [last chapter](../chapter11/receiving.md). The parent is sent a `SIGCHLD` with the signal information, if a handler is defined, before being awakened with `wake_waiter`. In this case, there is also an additional call to `free_process`. The `free_process` function is defined in [src/fork.c](code0/src/fork.c), the birth, and now final resting place for `struct process`es:
+The functon is similar to `signal_parent_stop`, introduced in the [previous chapter](../chapter11/receiving.md). The parent receives a `SIGCHLD` with the signal information, if a handler is defined, before being awakened by `wake_waiter`. There is also a call to `free_process`. The `free_process` function is defined in [src/fork.c](code0/src/fork.c), the birth, and now final resting place for `struct process`es:
 
 ```C
 void free_process(struct process *p)
@@ -289,7 +289,7 @@ When a process is first created, the `refcount` is set equal to two, one for the
     p->refcount = forked_refcount;
 ```
 
-When the parent is notified of a child's exit in `signal_parent_stop`, the parent's reference is dropped. The schedule module has also been updated to handle the `struct process`'s own reference. Now, in `finish_switch`:
+When the parent is notified of a child's exit in `signal_parent_stop`, the parent's reference is dropped. The schedule module handles the `struct process`'s own reference. In `finish_switch`:
 
 ```C
     if(prev != &(this_rq->idle_task) && !(prev->state == PROCESS_STATE_EXIT)) {
@@ -305,11 +305,11 @@ When the parent is notified of a child's exit in `signal_parent_stop`, the paren
 
 There is no need to rebalance an exiting process to a new CPU. If the process state has been set to exit, the current runqueue's priority is decremented, the process removed from the runqueue, and `free_process` executes to drop the reference.
 
-So our kernel stacks and our process structs can be freed for future allocations. But there remains an issue. What if one process sends a signal to a second process while the second process is exiting? And what happened to the process pid, which never was deallocated? The `do_kill` function gets a reference to a process, and updates the `struct signal` if this races with deallocating a process, the proces may already be freed by the time `send_signal` is doing its state updates. This race could completely crash the system.
+So our kernel stacks and our process structs can be freed for future allocations. But there remains an issue. What if one process sends a signal to a second process while the second process is exiting? And what happened to the process PID, was it ever deallocated? The `do_kill` function gets a reference to a process, and updates the `struct signal`. If this races with freeing a process, the process reference may already be invalid by the time `send_signal` is doing its state updates. The race could completely crash the system.
 
-This brings us back to the `pid_put` function we saw in `waitpid`. In turns out, the process and the process's parent are not the only actors with references to a process. The pid module, with its pidmap _also_ has a reference to a process. In order to avoid catastrophic races, the pid module needs to be revamped to account for a process's reference count.
+This brings us back to the `pid_put` function we saw in `waitpid`. In turns out, the process and the process's parent are not the only actors with references to a `struct process`. The PID module, with its `pidmap` _also_ has a reference to a process. In order to avoid catastrophic races, the PID module needs to be revamped to account for a process's reference count.
 
-In [src/pid.c](code0/src/pid.c), we now associate each integer pid with a `struct pid` object, which itself has a reference counter, as well as a process reference. When a pid is allocated, the reference count of the associated process is incremented to account for this extra reference:
+In [src/pid.c](code0/src/pid.c), we now associate each integer PID with a `struct pid` object, which itself has a reference counter, as well as a process reference. When a PID is allocated, the reference count of the associated process increments to account for this extra reference:
 
 ```C
 struct pid {
@@ -346,7 +346,7 @@ unsigned long allocate_pid(struct process *p)
 }
 ```
 
-Locking is now needed to protect the `refmap` from concurrent access, and to generate atomic operations against its access. When getting a process from the `refmap`, the reference count of the backing `struct pid` is increased under protection of the `pidlock`
+Locking is now essential to protect the `refmap` from concurrent access, and to generate atomic operations. When getting a process from the `refmap`, the reference count of the backing `struct pid` increases under protection of the `pidlock`
 
 ```C
 struct process *pid_process(unsigned int pid)
@@ -365,7 +365,7 @@ struct process *pid_process(unsigned int pid)
 }
 ```
 
-When finished with the reference, the user must call `pid_put` to release the reference:
+When finished, the client must call `pid_put` to release the reference:
 
 ```C
 void pid_put(unsigned int pid)
@@ -402,7 +402,7 @@ static void deallocate_pid(unsigned int pid, struct process *p)
 }
 ```
 
-Now, when the kernel calls `do_kill` in [src/signal.c](code0/src/signal.c), it first gets and the puts a reference to the pid:
+Now, when the kernel calls `do_kill` in [src/signal.c](code0/src/signal.c), it first gets the `pid`'s backing process and later puts a reference to the `pid`:
 
 ```C
 int do_kill(int pid, int signal)
@@ -427,7 +427,7 @@ int do_kill(int pid, int signal)
 }
 ```
 
-This updated implementation creates and chicken-and-egg problem elsewhere. In `schedule_init`, pids are allocated for the idle processes with calls to `allocate_pid`. But not `allocate_pid` calls `alloc_obj` from the allocate module. The allocate module is initalized _after_ the schedule module, and must be because the schedule module initialized the `CURRENT` macro, enabling the per-CPU caches to be setup from CPU 0. So something has got to give. Many solutions exist, including deferred pid allocation. The one CheesecakeOS adopts currently is to simply assign the CPU number as the pid for the idle processes, and those pids are marked as in use during `pid_init`:
+This updated implementation creates a chicken-and-egg problem elsewhere. In `schedule_init`, PIDs are allocated for the idle processes with calls to `allocate_pid`. But now `allocate_pid` calls `alloc_obj` from the allocate module. The allocate module is initialized _after_ the schedule module, and must be because the schedule module initializes the `CURRENT` macro, enabling the per-CPU caches to be setup from CPU 0. So something has got to give. Many solutions exist, including deferred PID allocation. The one CheesecakeOS adopts currently is to simply assign the CPU number as the `pid` for the idle processes, and those `pid`s are marked as in use during `pid_init`:
 
 ```C
 void pid_init()
@@ -444,9 +444,9 @@ void pid_init()
 
 The idle processes don't receive signals or exit, so this should work out alright.
 
-#### Builtins
+#### Built-ins
 
-It's time to take a break, and have some fun. Especially if your idea of fun is writing builtin shell commands. Our builtin examples are quite primitive. Seeing as we have built this system from scratch, they are still quite pleasing. In the main processing loop of the shell in [arch/arm64/user/shell.c](code0/arch/arm64/shell.c) we have added an if-clause:
+It's time to take a break, and have some fun. Especially if your idea of fun is writing built-in shell commands. Our built-in examples are primitive. Seeing as we have built this system from scratch, they are still quite pleasing. In the main processing loop of the shell in [arch/arm64/user/shell.c](code0/arch/arm64/shell.c) we have added an if-clause:
 
 ```C
                 else if(shell_builtin(buf)) {
@@ -454,7 +454,7 @@ It's time to take a break, and have some fun. Especially if your idea of fun is 
                 }
 ```
 
-The `shell_builtin` function decides if the input buffer contains a builtin command, and, if so, executes it:
+The `shell_builtin` function decides if the input buffer contains a built-in command, and, if so, executes it:
 
 ```C
 static int shell_builtin(char *buffer)
@@ -491,7 +491,7 @@ static int shell_ls()
 }
 ```
 
-You may have noticed one major inconvenience. We have coded an if-clause for each shell builtin. This makes adding additional builtins painful, as each must have a correspoding if. We would like to do something more along the lines of:
+One major inconvenience. We have coded an if-clause for each shell built-in. This makes adding additional built-ins painful, as each must have a corresponding if. We would like to do something more along the lines of:
 
 ```C
 #define NUM_BUILTINS    (2)
@@ -523,15 +523,16 @@ static int shell_builtin(char *buffer)
         bc = builtin_commands[i];
         if(!strcmp(bc.command, buffer)) {
             bc.fn();
+            break;
         }
     }
     return found;
 }
 ```
 
-In this way, we could simply maintain the array of builtin commands. Unfortunately, this is not possible. As the array is statically compiled into the kernel image as part of the data section, the function references have addresses in the kernel range. So `bc.fn()` causes a fatal page fault. When run as part of a series of if statements, the addresses are computed at pc-relative offsets, so they are acceptable. There are, of course, hacks to get around the issue, but they are ugly or fraught, so we accept this slight injustice.
+In this way, we could simply maintain the array of built-in commands. Unfortunately, this is not possible. As the array is statically compiled into the kernel image as part of the data section, the function references resolve to pointers in the kernel range. So `bc.fn()` causes a fatal page fault. When run as part of a series of if statements, the addresses are computed at pc-relative offsets, so they are acceptable. There are, of course, hacks to get around the issue, but they are ugly or fraught, so we accept this slight injustice.
 
-Now, when running, entering "help\n" or "ls\n" will display output, without running a new process. Making the processes is the fun part though.
+Now, when running, entering "help\n" or "ls\n" will display output, without running a new process. Creating the processes is the fun part though.
 
 #### Applications
 
@@ -548,7 +549,7 @@ int fault()
 }
 ```
 
-As this program accesses an invalid kernel address, it should result in a `SIGSEGV`. An update to the page fault handler, to `do_bad` function is [arch/arm64/fault.c](code1/arch/arm64/fault.c) now sends this signal instead of running `do_exit` right away:
+As this program accesses an invalid kernel address, it should result in a `SIGSEGV`. An update to the page fault handler, the `do_bad` function in [arch/arm64/fault.c](code1/arch/arm64/fault.c) now sends this signal instead of running `do_exit` right away:
 
 ```C
 int do_bad(unsigned long addr, unsigned long esr, struct stack_save_registers *ssr)
@@ -573,7 +574,7 @@ The `SIGSEGV` is set as the error code in the call to `do_exit`, and this should
                         }
 ```
 
-Another program, [arch/arm64/user/inifity.c](code0/arch/arm64/user/inifity.c), echoes infiinity to the screen in an infinite loop:
+Another program, [arch/arm64/user/inifity.c](code0/arch/arm64/user/inifity.c), echoes infinity to the screen in an infinite loop:
 
 ```C
 void exit(int code);
@@ -629,5 +630,5 @@ Now it is your turn! Build and run CheesecakeOS. Type some stuff on the terminal
 
 ![Raspberry Pi Finale Cheesecake](images/1201_rpi4_finale.png)
 
-*Chapter Top* [Chapters[12]: Signals](chapter11.md) | *Next Chapter* [Chapters[13]: Bonus](../chapter13/chapter13.md)  
-*Previous Page* [Receiving](receiving.md) | *Next Page* [Chapters[13]: Bonus](../chapter13/chapter13.md)
+*Previous Page* [Chapters[12]: Signals](chapter11.md) | *Next Page* [Chapters[13]: Bonus](../chapter13/chapter13.md)  
+*Chapter Top* [Chapters[12]: Signals](chapter11.md) | *Next Chapter* [Chapters[13]: Bonus](../chapter13/chapter13.md)
