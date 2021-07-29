@@ -43,9 +43,16 @@ Thus there is now some embryonic state our CheesecakeOS can track for a process:
 There must be some algorithm to select the next process to switch to when it is time to do so. The structure we will use for this is the `struct runqueue` defined in [include/cake/schedule.h](code0/include/cake/schedule.h):
 
 ```C
-#define CURRENT             ARCH_GET_CURRENT
-#define PREEMPT_DISABLE()   CURRENT->preempt_count++
-#define PREEMPT_ENABLE()    CURRENT->preempt_count--
+#include "arch/schedule.h"
+
+#define PREEMPT_DISABLE()   do { \
+                                    CURRENT->preempt_count++; \
+                                    BARRIER(); \
+                            } while(0)
+#define PREEMPT_ENABLE()    do { \
+                                BARRIER(); \
+                                CURRENT->preempt_count--; \
+                            } while(0)
 
 struct runqueue {
     unsigned int switch_count;
@@ -66,10 +73,18 @@ struct runqueue {
 
 Each CPU will have its own runqueue. The `weight` member is used to determine if it is profitable to move a process to another CPU's runqueue, balancing the load across multiple CPUs.
 
-There is also this `CURRENT` macro, which returns a reference to the currently running process. We use this reference ubiquitously to check and set the state of the currently running process. Already in the next line, we can see the macro in use to disable and enable preemption. The implementation of the `CURRENT` macro is defined in [arch/arm64/include/arch/schedule.h](code0/arch/arm64/include/arch/scehdule.h):
+There is a `CURRENT` macro, which returns a reference to the currently running process. We use this reference ubiquitously to check and set the state of the currently running process. Already we can see the macro in use to disable and enable preemption. 
+
+The `PREEMPT_ENABLE` and `PREEMPT_DISABLE` macros include a `BARRIER` macro, taken from Linux, which prevents the compiler from reordering the preemption state. `BARRIER` is defined in [include/cake/compiler.h](code0/include/cake/compiler.h):
 
 ```C
-#define ARCH_GET_CURRENT    __current()
+#define BARRIER()               __asm__ __volatile__("": : :"memory")
+```
+
+The implementation of the `CURRENT` macro is defined in [arch/arm64/include/arch/schedule.h](code0/arch/arm64/include/arch/scehdule.h):
+
+```C
+#define CURRENT             __current()
 #define SCHEDULE_CURRENT    __schedule_current_init
 
 struct process *__current();
