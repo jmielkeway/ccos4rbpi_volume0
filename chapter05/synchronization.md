@@ -1,7 +1,7 @@
 *Chapter Top* [Chapters[5]: SMP](chapter5.md) | *Next Chapter* [Chapters[6]: Memory Allocation](../chapter06/chapter6.md)  
 *Previous Page* [Chapters[5]: SMP](chapter5.md) | *Next Page* [The Cantankerous Cache Bug](cache-bug.md)
 
-## Synchronization([chapter5/code0](code0))
+## Synchronization ([chapter5/code0](code0))
 
 #### The CPU Spin Pen
 

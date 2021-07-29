@@ -1,5 +1,5 @@
 *Chapter Top* [Chapters[1]: Hello, Cheesecake!](chapter1.md)  |  *Next Chapter* [Chapters[2]: Processor Initialization and Exceptions](../chapter02/chapter2.md)  
-*Previous Page* [Chapters[1]: Hello, Cheesecake!](chaper1.md)  |  *Next Page* [Conventions, Design, Building, and Linking](conventions-design-building-linking.md)
+*Previous Page* [Chapters[1]: Hello, Cheesecake!](chapter1.md)  |  *Next Page* [Conventions, Design, Building, and Linking](conventions-design-building-linking.md)
 
 ## Hello, Cheesecake! ([chapter1/code0](code0))
 
@@ -276,5 +276,5 @@ That's all it takes to get our embryonic CheesecakeOS up and outputting.
 
 > Note: No GPIO configuration or baud-rate setting is required. I cannot say for sure why this is the case. I believe it is because the specific bootloader used with tag 1.20200512 from the [Getting Started](../chapter00/gettting-started.md) Guide sets it up for us. If you insist on using a different version of the bootloader, you may have to do some extra startup configuration. It would be good, then, to include the GPIO/mini UART register initialization, so that any bootloader version would work. See issue [#337](https://github.com/jmielkeway/ccos4rbpi_volume0/issues/337).
 
-*Previous Page* [Chapters[1]: Hello, Cheesecake!](chaper1.md)  |  *Next Page* [Conventions, Design, Building, and Linking](conventions-design-building-linking.md)  
+*Previous Page* [Chapters[1]: Hello, Cheesecake!](chapter1.md)  |  *Next Page* [Conventions, Design, Building, and Linking](conventions-design-building-linking.md)  
 *Chapter Top* [Chapters[1]: Hello, Cheesecake!](chapter1.md)  |  *Next Chapter* [Chapters[2]: Processor Initialization and Exceptions](../chapter02/chapter2.md)

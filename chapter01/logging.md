@@ -1,7 +1,7 @@
 *Chapter Top* [Chapters[1]: Hello, Cheesecake!](chapter1.md)  |  *Next Chapter* [Chapters[2]: Processor Initialization and Exceptions](../chapter02/chapter2.md)  
 *Previous Page* [Conventions, Design, Building, and Linking](conventions-design-building-linking.md)  |  *Next Page* [Chapters[2]: Processor Initialization and Exceptions](../chapter02/chapter2.md)
 
-## Logging([chapter1/code2](code2))
+## Logging ([chapter1/code2](code2))
 
 #### Some Useful Definitions
 

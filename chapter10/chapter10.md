@@ -1,4 +1,4 @@
-*Previous Chapter* [Chapters[9]: Virtual Memory](../chapter09/chapter09.md) | *Next Chapter* [Chapters[11]: Signals](../chapter11/chapter11.md)  
+*Previous Chapter* [Chapters[9]: Virtual Memory](../chapter09/chapter9.md) | *Next Chapter* [Chapters[11]: Signals](../chapter11/chapter11.md)  
 *Previous Page* [Executing Into User Space](../chapter09/exec.md)  |  *Next Page* [Writing](write.md)
 
 ## Chapters[10]: The TTY Driver with File Abstraction
@@ -132,4 +132,4 @@ It's time to put the 'I' in I/O. Before this chapter, we have only been able to 
 - In [Embryonic Shell](shell.md) we combine reading, writing, and cloning, and execing to demo our first stab at the Cheesecake Shell.
 
 *Previous Page* [Executing Into User Space](../chapter09/exec.md)  |  *Next Page* [Writing](write.md)  
-*Previous Chapter* [Chapters[9]: Virtual Memory](../chapter09/chapter09.md) | *Next Chapter* [Chapters[11]: Signals](../chapter11/chapter11.md)
+*Previous Chapter* [Chapters[9]: Virtual Memory](../chapter09/chapter9.md) | *Next Chapter* [Chapters[11]: Signals](../chapter11/chapter11.md)
