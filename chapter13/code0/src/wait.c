@@ -66,13 +66,13 @@ int sys_waitpid(int pid, int *status, int options)
             if(p->signal->flags & SIGNAL_FLAGS_STOPPED) {
                 retval = p->pid;
                 s |= WSTOPPED;
-                p->signal->flags &= ~SIGNAL_FLAGS_STOPPED;
+                p->signal->flags &= ~CHILD_STOPPED;
                 goto unlock;
             }
             if(p->signal->flags & SIGNAL_FLAGS_CONTINUED) {
                 retval = p->pid;
                 s |= WCONTINUED;
-                p->signal->flags &= ~SIGNAL_FLAGS_CONTINUED;
+                p->signal->flags &= ~CHILD_CONTINUED;
                 goto unlock;
             }
             if(p->state == PROCESS_STATE_EXIT) {

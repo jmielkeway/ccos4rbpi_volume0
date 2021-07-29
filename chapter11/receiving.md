@@ -44,8 +44,10 @@ The current `blocked` bitmap is then stored in `oldset` so the user application 
 ```C
 int sys_sigprocmask(unsigned long how, unsigned long *newset, unsigned long *oldset)
 {
+    int err = 0;
     unsigned long n, *o;
     struct process *current = CURRENT;
+    struct spinlock *lock = &(current->signal->lock);
     if(newset) {
         copy_from_user(&n, newset, sizeof(*newset));
     }
@@ -53,6 +55,7 @@ int sys_sigprocmask(unsigned long how, unsigned long *newset, unsigned long *old
     if(oldset) {
         copy_to_user(oldset, o, sizeof(*oldset));
     }
+    SPIN_LOCK(lock);
     switch(how) {
         case SIG_BLOCK:
             *o |= n;
@@ -64,9 +67,11 @@ int sys_sigprocmask(unsigned long how, unsigned long *newset, unsigned long *old
             *o = n;
             break;
         default:
-            return -1;
+            err = -1;
+            break;
     }
-    return 0;
+    SPIN_UNLOCK(lock);
+    return err;
 }
 ```
 
@@ -91,10 +96,13 @@ The `__sigaction` routine is another system call, also implemented in [src/signa
 ```C
 int sys_sigaction(int signo, struct sigaction *sigaction, struct sigaction *unused)
 {
+    struct sigaction *target;
     struct process *current = CURRENT;
     struct signal *signal = current->signal;
-    struct sigaction *target = &(signal->sighandler.sigaction[signo - 1]);
+    SPIN_LOCK(&(current->signal->lock));
+    target = &(signal->sighandler.sigaction[signo - 1]);
     copy_from_user(target, sigaction, sizeof(*sigaction));
+    SPIN_UNLOCK(&(current->signal->lock));
     return 0;
 }
 ```  
@@ -195,13 +203,14 @@ Otherwise, the `get_signal` function begins with a `start` label, and acquires t
 
 ```C
     if(signal->flags & SIGNAL_FLAGS_CONTINUED) {
+        signal->flags &= ~SIGNAL_FLAGS_CONTINUED;
         SPIN_UNLOCK(&(signal->lock));
         signal_parent_stop(current, SIGNAL_FLAGS_CONTINUED);
         goto start;
     }
 ```
 
-In the case the `flags` field of the `struct signal` indicates the process has received a `SIGCONT`, the parent of the process will be signaled, and the process returns to `start`. In this way, `send_signal` and `get_signal` are consistent in that `SIGCONT` signals are handled implicitly, the corresponding `pending` and `blocked` bits are never processed explicitly. We will investigate this `signal_parent_stop` creature and the parent relationship a little later.
+In the case the `flags` field of the `struct signal` indicates the process has received a `SIGCONT`, the parent of the process receives a notification, and execution returns to `start`. In this way, `send_signal` and `get_signal` are consistent in that `SIGCONT` signals are handled implicitly, the corresponding `pending` and `blocked` bits are never processed explicitly. We will investigate this `signal_parent_stop` ingredient and the parent relationship a little later.
 
 ```C
     while(1) {
@@ -214,7 +223,7 @@ In the case the `flags` field of the `struct signal` indicates the process has r
 The function enters an infinite loop for processing pending signals. Each signal is dequeued from the set of pending signals, one at a time. The `dequeue_signal` function returns the signal to be processed, and fills in the `info` field of the `struct cakesignal`. If there are no pending signals to be processed, taking into account the set of blocked signals, the function returns zero, and the loop and function end:
 
 ```C
-int dequeue_signal(struct process *p, unsigned long *blocked, struct siginfo *info)
+static int dequeue_signal(struct process *p, unsigned long *blocked, struct siginfo *info)
 {
     int signo;
     unsigned long x;
@@ -279,13 +288,13 @@ If the function of the `struct sigaction` for the dequeue signal is equal to `SI
             schedule_self();
             goto start;
         }
-        current->signal->exitcode = signo;
-        do_exit(1);
+        SPIN_UNLOCK(&(signal->lock));
+        do_exit(signo);
 ```
 
-The signal can either be a stop signal, or a fatal signal. In the the former case, the `SIGNAL_FLAGS_STOPPED` flags are set, the parent is notified of the stop, and the process halts further execution by yielding in `schedule_self`. If the process receives a continue signal, it will return from `schedule_self`, and return to the `start` label. The `signal_parent_stop` must be called without the lock held in order to avoid deadlock, just like the `signal_parent_stop` at the top of the function when notifying of a continue signal. There should be no adverse race conditions, however, as the process state is always updated with the lock held.
+The signal can either be a stop signal, or a fatal signal. In the the former case, the `SIGNAL_FLAGS_STOPPED` flags are set, the parent is notified of the stop, and the process halts further execution by yielding in `schedule_self`. If the process receives a continue signal, it will return from `schedule_self`, and jump to the `start` label.
 
-If the dequeued signal is not a stop signal, it is a fatal signal, and the process must exit. The process's exit code is updated in the `struct signal` `exitcode` field. Then, `do_exit` will zap the process.
+If the dequeued signal is not a stop signal, it is a fatal signal, and the process must exit. The lock is released, and the signal number passed along to `do_exit` as the `exitcode`.
 
 ```C
     SPIN_UNLOCK(&(signal->lock));
@@ -314,30 +323,23 @@ It is clear how the kernel selects, communicates, possibly executes the signal t
 ```C
 void check_and_process_signals(struct stack_save_registers *ssr)
 {
-    unsigned long continue_addr, restart_addr, x0;
+    unsigned long x0;
     struct cakesignal csig;
-    struct process *current = CURRENT;
-    struct signal *signal = (current->signal);
-    unsigned long *pending = signal->pending;
-    while(READ_ONCE(*pending) &~ READ_ONCE(*(signal->blocked))) {
-        if(ssr->syscalln) {
-            continue_addr = ssr->pc;
-            restart_addr = continue_addr - INSTRUCTION_SIZE;
-            x0 = ssr->regs[0];
-            ssr->syscalln = 0;
-            if(x0 == -ERESTARTSYS) {
-                ssr->regs[0] = ssr->orig_x0;
-                ssr->pc = restart_addr;
-            }
+    if(ssr->syscalln) {
+        ssr->syscalln = 0;
+        x0 = ssr->regs[0];
+        if(x0 == -ERESTARTSYS) {
+            ssr->regs[0] = ssr->orig_x0;
+            ssr->pc -= INSTRUCTION_SIZE;
         }
-        if(get_signal(&csig)) {
-            run_user_sighandler(ssr, &csig);
-        }
-    };
+    }
+    while(get_signal(&csig)) {
+        run_user_sighandler(ssr, &csig);
+    }
 }
 ```
 
-Let us try to wrap our heads around the logic. First of all, the function takes as an argument, a pointer to the kernel stack area where important process state is saved. If a pending unblocked signal for the current process exists, we ask if the `check_and_process_signals` function is returning from a system call. A few crucial updates to the existing paradigm facilitate such a query.
+Let us try to wrap our heads around the logic. The function takes as an argument a pointer to the kernel stack area where important process state is saved. We ask if the `check_and_process_signals` function is in the return path of a system call. A few crucial updates to the existing paradigm facilitate such a query.
 
 First, the `struct stack_save_registers` structure has two new fields appended in [arch/arm64/include/arch/process.h](code1/arch/arm64/include/arch/process.h):
 
@@ -375,7 +377,7 @@ __el0_svc:
 
 The `stp` saves both the original `x0` in the case a rerun is needed, and the system call number from `x26`.
 
-After determining if a system call needs to be rerun, execution proceeds with the call to `get_signal`, which returns true if a user defined signal handler should run. If so, the user space stack must be manipulated to allow for the asynchronous signal handler execution. The magic is defined in `run_user_sighandler`:
+After determining if a system call needs to be rerun, execution proceeds with the looping call to `get_signal`, which returns true if a user defined signal handler should run. If so, the user space stack must be manipulated to allow for the asynchronous signal handler execution. The magic is defined in `run_user_sighandler`:
 
 ```C
 static void run_user_sighandler(struct stack_save_registers *ssr, struct cakesignal *csig)
@@ -734,7 +736,7 @@ The `sys_sigreturn` function restores the state of the process by moving the sav
 ```C
 void set_blocked_signals(struct process *p, unsigned long signal_mask)
 {
-    struct spinlock *lock = &(p->signal->sighandler.lock);
+    struct spinlock *lock = &(p->signal->lock);
     SPIN_LOCK(lock);
     *(p->signal->blocked) = signal_mask;
     SPIN_UNLOCK(lock);
@@ -820,15 +822,17 @@ static void signal_parent_stop(struct process *p, unsigned long flags)
         default:
             break;
     }
+    SPIN_LOCK(&(parent->signal->lock));
     sighandler = &(parent->signal->sighandler);
     if(sighandler->sigaction[SIGCHLD - 1].fn != SIG_IGN) {
         send_signal(SIGCHLD, &info, parent);
     }
+    SPIN_UNLOCK(&(parent->signal->lock));
     wake_waiter(&(parent->signal->waitqueue));
 }
 ```
 
-If `SIGCHLD` signals are not to be ignored - and they should not be for our shell - a `SIGCHLD` signal is sent to the parent. Our shell should then receive this signal and process it whenever it returns to user space. At the end of the function, `wake_waiter` wakes a process sleeping on the parent's `struct signal`'s waitqueue. But we have done no setup for this waitqueue. That's ok, consider it a teaser into the [next chapter](../chapter12/chapter12.md). 
+If `SIGCHLD` signals are not to be ignored - and they should not be for our shell - a `SIGCHLD` signal is sent to the parent. Our shell should then receive this signal and process it whenever it returns to user space. The check for an unignored user signal handler must be protected against a concurrent change to the handler from a `sys_sigaction` call. As a result, the lock has moved outside the `send_signal` function. The `do_kill` function now also acquires the lock. At the end of the function, `wake_waiter` wakes a process sleeping on the parent's `struct signal`'s waitqueue. But we have done no setup for this waitqueue. That's ok, consider it a teaser into the [next chapter](../chapter12/chapter12.md).
 
 As we believe our shell now capable of receiving signals, it is time to build and run our CheesecakeOS to check it out. Remember that
 - Multiple CPUs are running, and that user applications are started on CPUs 1, 2, or 3, while the shell runs on CPU 0

@@ -1,5 +1,5 @@
-*Chapter Top* [Chapters[12]: Signals](chapter11.md) | *Next Chapter* [Chapters[13]: Bonus](../chapter13/chapter13.md)  
-*Previous Page* [Chapters[12]: Signals](chapter11.md) | *Next Page* [Chapters[13]: Bonus](../chapter13/chapter13.md)
+*Chapter Top* [Chapters[12]: The Shell](chapter12.md) | *Next Chapter* [Chapters[13]: Bonus](../chapter13/chapter13.md)  
+*Previous Page* [Chapters[12]: The Shell](chapter12.md) | *Next Page* [Chapters[13]: Bonus](../chapter13/chapter13.md)
 
 ## The Shell ([chapter12/code0](code0))
 
@@ -76,23 +76,38 @@ For each process in the `childlist`, we acquire the signal lock to protect again
             if(p->signal->flags & SIGNAL_FLAGS_STOPPED) {
                 retval = p->pid;
                 s |= WSTOPPED;
-                p->signal->flags &= ~SIGNAL_FLAGS_STOPPED;
+                p->signal->flags &= ~CHILD_STOPPED;
                 goto unlock;
             }
 ```
 
-If the signal flags indicate this child is stopped, the return value is set to the `pid` of the child, the status is updated to indicate a child was stopped, the indicator flag is cleared, and the loop terminates.
+If the signal flags indicate this child is stopped, the return value is set to the `pid` of the child, the status is updated to indicate a child was stopped, the `CHILD_STOPPED` indicator flag is cleared, and the loop terminates.
 
 ```C
             if(p->signal->flags & SIGNAL_FLAGS_CONTINUED) {
                 retval = p->pid;
                 s |= WCONTINUED;
-                p->signal->flags &= ~SIGNAL_FLAGS_CONTINUED;
+                p->signal->flags &= ~CHILD_CONTINUED;
                 goto unlock;
             }
 ```
 
 Similarly, if there is a child that continued, that child and status is returned.
+
+The `CHILD_CONTINUED` and `CHILD_STOPPED` flags are new flags set in [src/signal.c](code0/src/signal.c), in `send_signal` or `get_signal`, for the purpose of communicating the status to `waitpid`. For example, in `send_signal`:
+
+```C
+    else if(SIGMASK(signo) & SIGMASK(SIGCONT)) {
+        signal_clear(signal, (STOP_SIGNALS_MASK));
+        if(signal->flags & SIGNAL_FLAGS_STOPPED) {
+            signal->flags = SIGNAL_FLAGS_CONTINUED | CHILD_CONTINUED;
+        }
+        WRITE_ONCE(p->state, PROCESS_STATE_RUNNING);
+        return 0;
+    }
+```
+
+The final `waitpid` check asks if the child has exited:
 
 ```C
             if(p->state == PROCESS_STATE_EXIT) {
@@ -108,7 +123,7 @@ Similarly, if there is a child that continued, that child and status is returned
             SPIN_UNLOCK(&(p->signal->lock));
 ```
 
-The last check is to determine if the child has exited. If so, not only does the status contain this information, but is also encoded with the process `exitcode` for error checking. The process removes its link from the sibling list. Finally, there is this call to `pid_put`, a function we have not seen before. Now the process status has been saved into the parent context, the process can be cleaned up, its memory returned to the allocator. The `pid_put` function, as we will examine later in this chapter, does some reference accounting for us.
+If so, not only does the status reflect the state, but is also encoded with the process `exitcode` for error checking. The process removes its link from the sibling list. Finally, there is this call to `pid_put`, a function we have not seen before. Now the process status has been saved into the parent context, the process can be cleaned up, its memory returned to the allocator. The `pid_put` function, as we will examine later in this chapter, does some reference accounting for us.
 
 ```C
         if(!retval && !(options & WNOHANG)) {
@@ -220,6 +235,7 @@ void do_exit(int code)
     current->memmap = 0;
     current->exitcode = code;
     current->state = PROCESS_STATE_EXIT;
+    current->signal->flags = SIGNAL_FLAGS_EXITED;
     SPIN_UNLOCK(&(current->signal->lock));
     put_memmap(mm);
     signal_parent_exit(current);
@@ -236,7 +252,17 @@ Let's break it down. First the current process's `memmap`s `refcount` is _increa
     }
 ```
 
-Saving a map on the `rq` is followed by a call to `drop_memmap` from `finish_switch`, so the math works out. The `do_exit` function sets the state of the terminating process to `PROCESS_STATE_EXIT`, and calls `signal_parent_exit` before the final call to `schedule_self`. The `signal_parent_exit` function is defined in [src/signal.c](code0/src/signal.c):
+Saving a map on the `rq` is followed by a call to `drop_memmap` from `finish_switch`, so the math works out. 
+
+The `do_exit` function sets the state of the terminating process to `PROCESS_STATE_EXIT`, and sets the signal flags as `SIGNAL_FLAGS_EXITED`, while holding the `struct signal`'s lock. The signal flags update prevents reception of subsequent signals with help of a new leading check in `send_signal`:
+
+```C
+    if(signal->flags & SIGNAL_FLAGS_EXITED) {
+        return 0;
+    }
+``` 
+
+On its way out `do_exit` puts the `struct memmap` and calls `signal_parent_exit` before the final call to `schedule_self`. The `signal_parent_exit` function is defined in [src/signal.c](code0/src/signal.c):
 
 ```C
 void signal_parent_exit(struct process *p)
@@ -305,7 +331,7 @@ When the parent is notified of a child's exit in `signal_parent_stop`, the paren
 
 There is no need to rebalance an exiting process to a new CPU. If the process state has been set to exit, the current runqueue's priority is decremented, the process removed from the runqueue, and `free_process` executes to drop the reference.
 
-So our kernel stacks and our process structs can be freed for future allocations. But there remains an issue. What if one process sends a signal to a second process while the second process is exiting? And what happened to the process PID, was it ever deallocated? The `do_kill` function gets a reference to a process, and updates the `struct signal`. If this races with freeing a process, the process reference may already be invalid by the time `send_signal` is doing its state updates. The race could completely crash the system.
+So our kernel stacks and our process structs can be freed for future allocations. But there remains an issue. What if one process sends a signal to a second process while the second process is exiting? And what happened to the process PID, was it ever deallocated? The `do_kill` function gets a reference to a process, and dereferences the `struct signal`. If this races with freeing a process, the process and signal references may already be invalid or even reassigned by the time `send_signal` runs. The race could completely crash the system.
 
 This brings us back to the `pid_put` function we saw in `waitpid`. In turns out, the process and the process's parent are not the only actors with references to a `struct process`. The PID module, with its `pidmap` _also_ has a reference to a process. In order to avoid catastrophic races, the PID module needs to be revamped to account for a process's reference count.
 
@@ -630,5 +656,5 @@ Now it is your turn! Build and run CheesecakeOS. Type some stuff on the terminal
 
 ![Raspberry Pi Finale Cheesecake](images/1201_rpi4_finale.png)
 
-*Previous Page* [Chapters[12]: Signals](chapter11.md) | *Next Page* [Chapters[13]: Bonus](../chapter13/chapter13.md)  
-*Chapter Top* [Chapters[12]: Signals](chapter11.md) | *Next Chapter* [Chapters[13]: Bonus](../chapter13/chapter13.md)
+*Previous Page* [Chapters[12]: The Shell](chapter12.md) | *Next Page* [Chapters[13]: Bonus](../chapter13/chapter13.md)  
+*Chapter Top* [Chapters[12]: The Shell](chapter12.md) | *Next Chapter* [Chapters[13]: Bonus](../chapter13/chapter13.md)

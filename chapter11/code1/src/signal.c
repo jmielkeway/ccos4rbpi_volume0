@@ -38,7 +38,7 @@ static void signal_parent_stop(struct process *p, unsigned long flags);
 
 static struct cache *sigqueue_cache;
 
-int dequeue_signal(struct process *p, unsigned long *blocked, struct siginfo *info)
+static int dequeue_signal(struct process *p, unsigned long *blocked, struct siginfo *info)
 {
     int signo;
     unsigned long x;
@@ -62,11 +62,17 @@ int dequeue_signal(struct process *p, unsigned long *blocked, struct siginfo *in
 
 int do_kill(int pid, int signal) 
 {
+    int err = 0;
     struct siginfo *info = (struct siginfo *) SIGNAL_SEND_PRIVATE;
     struct process *p;
+    struct spinlock *lock;
     p = pid_process(pid);
     if(p) {
-        return send_signal(signal, info, p);
+        lock = &(p->signal->lock);
+        SPIN_LOCK(lock);
+        err = send_signal(signal, info, p);
+        SPIN_UNLOCK(lock);
+        return err;
     }
     else {
         return -1;
@@ -83,6 +89,7 @@ int get_signal(struct cakesignal *csig)
 start:
     SPIN_LOCK(&(signal->lock));
     if(signal->flags & SIGNAL_FLAGS_CONTINUED) {
+        signal->flags &= ~SIGNAL_FLAGS_CONTINUED;
         SPIN_UNLOCK(&(signal->lock));
         signal_parent_stop(current, SIGNAL_FLAGS_CONTINUED);
         goto start;
@@ -109,8 +116,8 @@ start:
             schedule_self();
             goto start;
         }
-        current->signal->exitcode = signo;
-        do_exit(1);
+        SPIN_UNLOCK(&(signal->lock));
+        do_exit(signo);
     }
     SPIN_UNLOCK(&(signal->lock));
     csig->signo = signo;
@@ -121,7 +128,6 @@ static int send_signal(int signo, struct siginfo *info, struct process *p)
 {
     struct signal *signal = p->signal;
     struct sigqueue *q;
-    SPIN_LOCK(&(signal->lock));
     if(SIGMASK(signo) & (STOP_SIGNALS_MASK)) {
         signal_clear(signal, SIGMASK(SIGCONT));
     }
@@ -131,10 +137,10 @@ static int send_signal(int signo, struct siginfo *info, struct process *p)
             signal->flags = SIGNAL_FLAGS_CONTINUED;
         }
         WRITE_ONCE(p->state, PROCESS_STATE_RUNNING);
-        goto unlock;
+        return 0;
     } 
     if(*(signal->pending) & SIGMASK(signo)) {
-        goto unlock;
+        return 0;
     }
     q = alloc_obj(sigqueue_cache);
     list_enqueue(&(signal->signallist), &(q->list));
@@ -153,14 +159,12 @@ static int send_signal(int signo, struct siginfo *info, struct process *p)
     if(READ_ONCE(p->state) & PROCESS_STATE_INTERRUPTIBLE) {
         WRITE_ONCE(p->state, PROCESS_STATE_RUNNING);
     }
-unlock:
-    SPIN_UNLOCK(&(signal->lock));
     return 0;
 }
 
 void set_blocked_signals(struct process *p, unsigned long signal_mask)
 {
-    struct spinlock *lock = &(p->signal->sighandler.lock);
+    struct spinlock *lock = &(p->signal->lock);
     SPIN_LOCK(lock);
     *(p->signal->blocked) = signal_mask;
     SPIN_UNLOCK(lock);
@@ -208,10 +212,12 @@ static void signal_parent_stop(struct process *p, unsigned long flags)
         default:
             break;
     }
+    SPIN_LOCK(&(parent->signal->lock));
     sighandler = &(parent->signal->sighandler);
     if(sighandler->sigaction[SIGCHLD - 1].fn != SIG_IGN) {
         send_signal(SIGCHLD, &info, parent);
     }
+    SPIN_UNLOCK(&(parent->signal->lock));
     wake_waiter(&(parent->signal->waitqueue));
 }
 
@@ -222,17 +228,22 @@ void signal_init()
 
 int sys_sigaction(int signo, struct sigaction *sigaction, struct sigaction *unused)
 {
+    struct sigaction *target;
     struct process *current = CURRENT;
     struct signal *signal = current->signal;
-    struct sigaction *target = &(signal->sighandler.sigaction[signo - 1]);
+    SPIN_LOCK(&(current->signal->lock));
+    target = &(signal->sighandler.sigaction[signo - 1]);
     copy_from_user(target, sigaction, sizeof(*sigaction));
+    SPIN_UNLOCK(&(current->signal->lock));
     return 0;
 }
 
 int sys_sigprocmask(unsigned long how, unsigned long *newset, unsigned long *oldset)
 {
+    int err = 0;
     unsigned long n, *o;
     struct process *current = CURRENT;
+    struct spinlock *lock = &(current->signal->lock);
     if(newset) {
         copy_from_user(&n, newset, sizeof(*newset));
     }
@@ -240,6 +251,7 @@ int sys_sigprocmask(unsigned long how, unsigned long *newset, unsigned long *old
     if(oldset) {
         copy_to_user(oldset, o, sizeof(*oldset));
     }
+    SPIN_LOCK(lock);
     switch(how) {
         case SIG_BLOCK:
             *o |= n;
@@ -251,7 +263,9 @@ int sys_sigprocmask(unsigned long how, unsigned long *newset, unsigned long *old
             *o = n;
             break;
         default:
-            return -1;
+            err = -1;
+            break;
     }
-    return 0;
+    SPIN_UNLOCK(lock);
+    return err;
 }
