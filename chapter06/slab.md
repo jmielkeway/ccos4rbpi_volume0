@@ -169,29 +169,25 @@ static void setup_size_caches()
     struct cache *sizecache;
     struct list *li;
     struct spinlock *lock;
-    struct page *ppa, *ppb;
+    struct *page;
     struct cpucache *cpucache, **ref, *old, *new;
-    void *cpucache_ptrs, *cpucache_blocks;
-    ppa = alloc_pages(0);
-    ppb = alloc_pages(3);
-    cpucache_ptrs = PAGE_TO_PTR(ppa);
-    cpucache_blocks = PAGE_TO_PTR(ppb);
+    void *cpucache_blocks;
+    page = alloc_pages(3);
+    cpucache_blocks = PAGE_TO_PTR(page);
     log("References: %x\r\n", cpucache_ptrs
 ```
 
-We grab two block of memory from the page allocator right away. We will use these blocks to setup temporary cpucaches until the allocator is far enough along to replace them organically.
+We grab an eight-page block of memory from the page allocator right away. We use the block to setup temporary cpucaches until the allocator is far enough along to replace them organically.
 
 ```C
     for(unsigned int i = 0; i < NUM_SIZE_CACHES; i++) {
         sizecache = &(sizecaches[i]);
-        ref = &(((struct cpucache **) cpucache_ptrs)[i * NUM_CPUS]);
         cpucache = (struct cpucache *) (((unsigned long) cpucache_blocks) + (i * 32 * 8));
         cpucache->free = 0;
         cpucache->capacity = CPUCACHE_CAPACITY;
-        ref[0] = cpucache;
 ```
 
-For each of the size caches, we allocate 32 bytes (eight bytes per `struct cpucache`, multiplied by four CPUs) for the array of cpucache references. We also allocate 128 bytes to hold up to 32 object pointers. The cpucache for CPU 0 points to these references. Since the initialization code runs on CPU 0, and only CPU 0, only CPU 0 urgently needs valid cpucache object references.
+For each of the size caches, we allocate 128 bytes to hold up to 32 object pointers. The cpucache for CPU 0 will point to this reference. Since the initialization code runs on CPU 0, and only CPU 0, only CPU 0 urgently needs valid cpucache object references.
 
 ```C
         objsize = 1 << (i + MIN_SIZE_CACHE_ORDER);
@@ -240,7 +236,7 @@ If the slab descriptor will reside off-slab, it will have no overhead impact on 
         sizecache->freecount = 0;
         sizecache->capacity = 0;
         sizecache->pageorder = lgrm;
-        sizecache->cpucaches[0] = ref[0];
+        sizecache->cpucaches[0] = cpucache;
         lock = &(sizecache->lock);
         lock->owner = 0;
         lock->ticket = 0;
@@ -631,13 +627,13 @@ That was a ride! Now let us return, as promised, to the size-cache cpucache init
             CPUCACHE_DATA(new)[j] = CPUCACHE_DATA(old)[j];
         }
         log("Done with setup for cachesize %x\r\n", sizecache->objsize);
+        cake_free(ref);
     }
-    free_pages(ppa);
-    free_pages(ppb);
+    free_pages(page);
 }
 ```
 
-Once the temporary pages are no longer referenced, and therefore no longer needed, they can be returned to the page allocator. 
+The 32-byte container of four cpucaches only serves to hold pointers to the caches until those references are copied into the cache object. The container is subsequently freed. Once the temporary eight-page block is no longer needed, the block is returned to the page allocator.
 
 #### Implementation - Cache Cache (Standard Caches)
 
@@ -684,6 +680,7 @@ static void setup_cache_cache()
         cache->cpucaches[i] = ref[i];
     }
     list_add(&cachelist, &(cache->cachelist));
+    cake_free(ref);
 }
 ```
 
@@ -728,6 +725,7 @@ struct cache *alloc_cache(char *name, unsigned long objsize)
     li->prev = li;
     li->next = li;
     list_add(&(cachelist), &(cache->cachelist));
+    cake_free(ref);
     return cache;
 freecache:
     cake_free(cache);

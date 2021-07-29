@@ -126,6 +126,7 @@ struct cache *alloc_cache(char *name, unsigned long objsize)
     li->prev = li;
     li->next = li;
     list_add(&(cachelist), &(cache->cachelist));
+    cake_free(ref);
     return cache;
 freecache:
     cake_free(cache);
@@ -279,8 +280,6 @@ struct page *alloc_pages(unsigned int order)
 
 void allocate_init()
 {
-    unsigned int count = 32;
-    void *ptrs[count];
     for(unsigned int i = 0; i <= MAX_ORDER; i++) {
         struct list *freelist = &(freelists[i]);
         freelist->next = freelist;
@@ -289,18 +288,6 @@ void allocate_init()
     arch_populate_allocate_structures(freelists);
     setup_size_caches();
     setup_cache_cache();
-    for(int i = 0; i < count; i++) {
-        ptrs[i] = cake_alloc(64);
-    }
-    for(int i = count - 1; i >= 0; i--) {
-        cake_free(ptrs[i]);
-    }
-    for(int i = 0; i < count; i++) {
-        ptrs[i] = cake_alloc(64);
-    }
-    for(int i = 0; i < count; i++) {
-        cake_free(ptrs[i]);
-    }
 }
 
 void *cake_alloc(unsigned long size)
@@ -511,6 +498,7 @@ static void setup_cache_cache()
         cache->cpucaches[i] = ref[i];
     }
     list_add(&cachelist, &(cache->cachelist));
+    cake_free(ref);
 }
 
 static void setup_size_caches()
@@ -520,20 +508,16 @@ static void setup_size_caches()
     struct cache *sizecache;
     struct list *li;
     struct spinlock *lock;
-    struct page *ppa, *ppb;
+    struct page *page;
     struct cpucache *cpucache, **ref, *old, *new;
-    void *cpucache_ptrs, *cpucache_blocks;
-    ppa = alloc_pages(0);
-    ppb = alloc_pages(3);
-    cpucache_ptrs = PAGE_TO_PTR(ppa);
-    cpucache_blocks = PAGE_TO_PTR(ppb);
+    void *cpucache_blocks;
+    page = alloc_pages(3);
+    cpucache_blocks = PAGE_TO_PTR(page);
     for(unsigned int i = 0; i < NUM_SIZE_CACHES; i++) {
         sizecache = &(sizecaches[i]);
-        ref = &(((struct cpucache **) cpucache_ptrs)[i * NUM_CPUS]);
         cpucache = (struct cpucache *) (((unsigned long) cpucache_blocks) + (i * 32 * 8));
         cpucache->free = 0;
         cpucache->capacity = CPUCACHE_CAPACITY;
-        ref[0] = cpucache;
         objsize = 1 << (i + MIN_SIZE_CACHE_ORDER);
         batchsize = DEFAULT_SIZE_CACHE_BATCHSIZE;
         numpages = (objsize * batchsize) / PAGE_SIZE;
@@ -545,7 +529,7 @@ static void setup_size_caches()
         sizecache->freecount = 0;
         sizecache->capacity = 0;
         sizecache->pageorder = lgrm;
-        sizecache->cpucaches[0] = ref[0];
+        sizecache->cpucaches[0] = cpucache;
         lock = &(sizecache->lock);
         lock->owner = 0;
         lock->ticket = 0;
@@ -571,7 +555,7 @@ static void setup_size_caches()
         for(unsigned int j = 0; j < new->free; j++) {
             CPUCACHE_DATA(new)[j] = CPUCACHE_DATA(old)[j];
         }
+        cake_free(ref);
     }
-    free_pages(ppa);
-    free_pages(ppb);
+    free_pages(page);
 }
