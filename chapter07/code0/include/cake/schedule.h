@@ -15,14 +15,20 @@
 #ifndef _CAKE_SCHEDULE_H
 #define _CAKE_SCHEDULE_H
 
+#include "cake/compiler.h"
 #include "cake/list.h"
 #include "cake/lock.h"
 #include "cake/process.h"
 #include "arch/schedule.h"
 
-#define CURRENT             ARCH_GET_CURRENT
-#define PREEMPT_DISABLE()   CURRENT->preempt_count++
-#define PREEMPT_ENABLE()    CURRENT->preempt_count--
+#define PREEMPT_DISABLE()   do { \
+                                    CURRENT->preempt_count++; \
+                                    BARRIER(); \
+                            } while(0)
+#define PREEMPT_ENABLE()    do { \
+                                BARRIER(); \
+                                CURRENT->preempt_count--; \
+                            } while(0)
 
 struct runqueue {
     unsigned int switch_count;

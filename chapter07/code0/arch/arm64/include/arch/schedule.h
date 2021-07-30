@@ -17,7 +17,7 @@
 
 #include "cake/process.h"
 
-#define ARCH_GET_CURRENT    __current()
+#define CURRENT             __current()
 #define SCHEDULE_CURRENT    __schedule_current_init
 
 struct process *__current();

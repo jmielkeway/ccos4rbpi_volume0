@@ -41,3 +41,5 @@
 do {									\
 	*(volatile typeof(x) *)&(x) = (val);				\
 } while (0)
+
+#define BARRIER()               __asm__ __volatile__("": : :"memory")
