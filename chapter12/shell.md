@@ -406,6 +406,7 @@ void pid_put(unsigned int pid)
         reference->refcount--;
         if(!(reference->refcount)) {
             p = reference->process;
+            refmap[pid] = 0;
             cake_free(reference);
             deallocate = 1;
         }
