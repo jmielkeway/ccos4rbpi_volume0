@@ -1,7 +1,7 @@
 *Chapter Top* [Chapters[3]: Memory Management Unit](chapter3.md)  |  *Next Chapter* [Chapters[4]: Caches](../chapter04/chapter4.md)  
 *Previous Page*  [ARM Page Tables](arm-page-tables.md) |  *Next Page* [Linear Mapping the Entire Physical Address Space](linear-mapping.md)
 
-## Establishing Boot Tables([chapter3/code0](code0))
+## Establishing Boot Tables ([chapter3/code0](code0))
 
 #### CheesecakeOS Configured Build System
 

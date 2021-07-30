@@ -1,7 +1,7 @@
 *Chapter Top* [Chapters[5]: SMP](chapter5.md) | *Next Chapter* [Chapters[6]: Memory Allocation](../chapter06/chapter6.md)  
 *Previous Page* [Synchronization](synchronization.md) | *Next Page* [Spinlocks](spinlocks.md)
 
-## The Cantankerous Cache Bug([chapter5/code1](code1))
+## The Cantankerous Cache Bug ([chapter5/code1](code1))
 
 #### Addressing Our Half-Baked Synchronization
 
